@@ -1,0 +1,62 @@
+# ---------------------------
+# Visual Studio
+# ---------------------------
+.vs/
+*.vcxproj.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ---------------------------
+# Compiled Binary Files
+# ---------------------------
+
+# ---------------------------
+# Build Results
+# ---------------------------
+bin/
+obj/
+Debug/
+Release/
+x64/
+x86/
+
+# ---------------------------
+# Intermediate Files
+# ---------------------------
+*.obj
+*.pch
+*.pdb
+*.ipdb
+*.iobj
+*.idb
+*.opendb
+*.VC.db
+*.tlog
+*.log
+
+# ---------------------------
+# CMake
+# ---------------------------
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# ---------------------------
+# Misc
+# ---------------------------
+*.cache
+*.aps
+*.ncb
+*.sdf
+*.opensdf
+
+# Ignore backup and autosave
+*~
+*.swp
+*.tmp
+
+# Ignore directories used by JetBrains IDEs (CLion, etc.)
+.idea/

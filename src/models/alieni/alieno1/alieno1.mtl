@@ -1,0 +1,11 @@
+# Created with Anim8or 1.00
+# Object "AlienGrub1":
+
+newmtl Alien_Grub_1
+Ka 0.165 0.165 0.165
+Kd 0.502 0.502 0.502
+Ks 0.357 0.357 0.357
+Ns 752.6
+map_Kd AlienGrub1_Base_Diffuse.jpg
+map_Ks AlienGrub1_Base_Specular.jpg
+

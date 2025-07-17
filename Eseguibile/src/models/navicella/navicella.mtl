@@ -1,0 +1,13 @@
+# Blender 4.1.1 MTL File: 'navicella.blend'
+# www.blender.org
+
+newmtl StarSparrow_Material
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd diffuse.png
+map_Ks specular.png
+map_Ke emission.png
+map_Bump -bm 1.000000 normal.png

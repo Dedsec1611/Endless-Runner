@@ -1,0 +1,197 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="text.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="text.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="blending.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="blending.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="bloom_final.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="bloom_final.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="blur.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="blur.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="bordo.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="bordo.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="freccia.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="freccia.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="alieno.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="alieno.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="proiettile.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="proiettile.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="barriera.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="barriera.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="navicella.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="navicella.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ufoRetro.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ufoRetro.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="roccia.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="roccia.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="pianeta.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="pianeta.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="stencilTesting.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="stencilTesting.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="health_bar.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="health_bar.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="basic.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="basic.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="background.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="background.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glad.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="model.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shader_m.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="render_text.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="alieno.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="navicella.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="proiettile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ufo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="barriera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="roccia.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pianeta.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="esplosione.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="suono.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Boss.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Player.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Tunnel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Background.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="SpaceInvaders.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
