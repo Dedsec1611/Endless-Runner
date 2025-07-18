@@ -1,8 +1,6 @@
-uniform sampler2D uBackgroundTexture;
-
-in vec2 TexCoords; 
 out vec4 FragColor;
-
-void main() {
-    FragColor = texture(uBackgroundTexture, TexCoords);
+uniform vec3 objectColor;
+void main()
+{
+    FragColor = vec4(objectColor, 1.0);
 }

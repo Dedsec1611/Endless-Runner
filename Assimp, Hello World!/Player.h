@@ -1,47 +1,68 @@
-// Player.h
 #pragma once
+
 #include <glm/glm.hpp>
-#include "Model.h"
 #include "shader_m.h"
+#include "model.h"
+#include "proiettile.h"
 
 class Player {
+private:
+    glm::vec3 posizione;
+    Model model;
+    Shader shader;
+
+    bool puoSparare = false;
+    float timerBonusSparo = 0.0f;
+
 public:
-    glm::vec3 position;
-    float speed;
-    Model* navicellaModel;
-    Shader navicellaShader;
+    Player() : posizione(0.0f, 0.0f, 0.0f) {}
 
+    void setModel(const Model& m) { model = m; }
+    void setShader(const Shader& s) { shader = s; }
 
-    Player() {
-        position = glm::vec3(0.0f, 0.0f, 0.0f);
-        speed = 10.0f;
+    glm::vec3 getPos() const { return posizione; }
+    void setPos(glm::vec3 p) { posizione = p; }
+
+    void abilitaSparoTemporaneo(float durata) {
+        puoSparare = true;
+        timerBonusSparo = durata;
     }
 
-    void init() {
-        navicellaModel = new Model("../src/models/navicella/navicella.obj");
-        navicellaShader = Shader("navicella.vs", "navicella.fs");
-
+    void aggiornaBonus(float deltaTime) {
+        if (puoSparare) {
+            timerBonusSparo -= deltaTime;
+            if (timerBonusSparo <= 0.0f) {
+                puoSparare = false;
+                timerBonusSparo = 0.0f;
+            }
+        }
     }
 
-    void update(float deltaTime) {
-        position.z -= speed * deltaTime;
+    bool haBonusSparo() const { return puoSparare; }
+
+    void aggiorna(float deltaTime, bool moveLeft, bool moveRight) {
+        float speed = 10.0f;
+        if (moveLeft)
+            posizione += glm::vec3(-speed * deltaTime, 0.0f, 0.0f);
+        if (moveRight)
+            posizione += glm::vec3(speed * deltaTime, 0.0f, 0.0f);
     }
 
-    void draw() {
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), position);
-        model = glm::scale(model, glm::vec3(0.5f));
-
-        navicellaShader.use();
-  
-        navicellaShader.setMat4("model", model);
-        navicellaModel->Draw(navicellaShader);
+    void render() {
+        shader.use();
+        glm::mat4 modelMatrix = glm::mat4(1.0f);
+        modelMatrix = glm::translate(modelMatrix, posizione);
+        modelMatrix = glm::scale(modelMatrix, glm::vec3(0.4f));
+        shader.setMat4("model", modelMatrix);
+        model.Draw(shader);
     }
-
-    float getZ() const {
-        return position.z;
+    void inizializzaProiettile(Proiettile& p) {
+        p.inizializzaPos(posizione + glm::vec3(0.0f, 0.0f, -1.0f));
+        p.inizializzaDir(glm::vec3(0.0f, 0.0f, -1.0f));
     }
-
-    void cleanup() {
-        delete navicellaModel;
+    void inizializzaProiettileSpeciale(Proiettile& p, int livello) {
+        p.setIsSpeciale(true);
+        p.inizializzaPos(posizione + glm::vec3(0.0f, 0.0f, -1.0f));
+        p.inizializzaDir(glm::vec3(0.0f, 0.0f, -1.0f));
     }
 };

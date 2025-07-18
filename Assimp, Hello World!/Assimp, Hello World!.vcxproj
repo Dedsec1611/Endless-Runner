@@ -216,6 +216,7 @@
     <ClInclude Include="mesh.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="navicella.h" />
+    <ClInclude Include="Nemici.h" />
     <ClInclude Include="pianeta.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="proiettile.h" />

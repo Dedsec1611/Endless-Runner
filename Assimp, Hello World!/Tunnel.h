@@ -4,13 +4,13 @@
 #include <glm/glm.hpp>
 #include <glad/glad.h>
 #include "shader_m.h"
-#include "alieno.h"
+#include "nemici.h"
+#include "Player.h"
 
 struct TunnelSegment {
     glm::vec3 position;
     float length;
-    //std::vector<Alieno> alieni;
-    Alieno alieni;
+    Nemici nemici;
 };
 
 class Tunnel {
@@ -26,8 +26,9 @@ public:
     float scenarioDuration = 20.0f;
     float scenarioTimer = 0.0f;
 
-    Model modelAlieno;
-    Shader* alienoShader;
+    Model modelNemico;
+    Model modelBonus;
+    Shader* nemicoShader;
 
     Tunnel() {
         segmentLength = 20.0f;
@@ -39,20 +40,25 @@ public:
             TunnelSegment segment;
             segment.position = glm::vec3(0.0f, 0.0f, -i * segmentLength);
             segment.length = segmentLength;
-            //segment.alieni.init();
+            segment.nemici.init(segment.position, modelNemico, nemicoShader);
+            segment.nemici.setBonusModel(&modelBonus);
             segments.push_back(segment);
         }
 
-        float cubeVertices[] = {
-            -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,  1.0f, -1.0f,
-            -1.0f, -1.0f, -1.0f, 1.0f,  1.0f, -1.0f, -1.0f,  1.0f, -1.0f
+        float planeVertices[] = {
+            -1.0f, 0.0f,  0.0f,
+             1.0f, 0.0f,  0.0f,
+             1.0f, 0.0f, -1.0f,
+            -1.0f, 0.0f,  0.0f,
+             1.0f, 0.0f, -1.0f,
+            -1.0f, 0.0f, -1.0f
         };
 
         glGenVertexArrays(1, &cubeVAO);
         glGenBuffers(1, &cubeVBO);
         glBindVertexArray(cubeVAO);
         glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glBindVertexArray(0);
@@ -71,14 +77,17 @@ public:
         }
 
         for (auto& seg : segments) {
+            seg.nemici.update(deltaTime);
+
             if (seg.position.z - segmentLength > playerZ) {
                 seg.position.z -= segmentLength * maxSegments;
-               // seg.alieni.init();
+                seg.nemici.init(seg.position, modelNemico, nemicoShader);
+                seg.nemici.setBonusModel(&modelBonus);
             }
         }
     }
 
-    void draw(Shader& shader) {
+    void draw(Shader& shader, Proiettile& proiettile, Proiettile& proiettileSpeciale, Player& player, Esplosione& esplosione) {
         shader.use();
 
         glActiveTexture(GL_TEXTURE0);
@@ -86,13 +95,17 @@ public:
         shader.setInt("uBackgroundTexture", 0);
 
         glBindVertexArray(cubeVAO);
-        for (const auto& seg : segments) {
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), seg.position);
-            model = glm::scale(model, glm::vec3(10.0f, 1.0f, segmentLength));
-            shader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+        for (auto& seg : segments) {
+            // opzionale: disegno piano
+            // glm::mat4 model = glm::translate(glm::mat4(1.0f), seg.position);
+            // model = glm::scale(model, glm::vec3(10.0f, 1.0f, segmentLength));
+            // shader.setMat4("model", model);
+            // glDrawArrays(GL_TRIANGLES, 0, 6);
 
-           // seg.alieni.render();
+            seg.nemici.render();
+            seg.nemici.checkCollision(proiettile, esplosione, player);
+            seg.nemici.checkCollision(proiettileSpeciale, esplosione, player);
+            seg.nemici.checkCollisionWithPlayer(player);
         }
         glBindVertexArray(0);
     }
@@ -103,6 +116,7 @@ public:
         for (auto tex : backgroundTextures)
             glDeleteTextures(1, &tex);
     }
+
 private:
     void loadBackgroundTexture(const std::string& path) {
         unsigned int textureID;
