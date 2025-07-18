@@ -41,6 +41,10 @@ const unsigned int SCR_HEIGHT = 600;
 Tunnel tunnel;
 Player player;
 Background* background;
+Background* background2;
+float transitionTime = 10.0f;
+float transitionTimer = 0.0f;
+bool fadeOut = true;
 
 Shader* shaderProgram;
 Shader alienoShader;
@@ -145,22 +149,30 @@ int main() {
     tunnel.init();
 
     background = new Background("../src/images/scenario1.png", backgroundShader);
+    background2 = new Background("../src/images/scenario2.png", backgroundShader);
 
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        transitionTimer += deltaTime;
+        float alpha = fmod(transitionTimer, transitionTime) / transitionTime;
+
         processInput(window);
 
         player.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f * deltaTime));
         player.aggiornaBonus(deltaTime);
+        if (player.haBonusSparo()) {
+            std::cout << "[TIMER BONUS] tempo rimanente: " << player.getBonusTime() << " sec" << std::endl;
+        }
         tunnel.update(deltaTime, player.getPos().z);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glDisable(GL_DEPTH_TEST);
-        background->draw();
+        background->draw(1.0f - alpha);
+        background2->draw(alpha);
         glEnable(GL_DEPTH_TEST);
 
         glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
@@ -201,9 +213,12 @@ int main() {
 
     tunnel.cleanup();
     background->cleanup();
+    background2->cleanup();
     delete shaderProgram;
     delete backgroundShader;
     delete background;
+    delete background2;
     glfwTerminate();
     return 0;
 }
+

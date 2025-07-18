@@ -23,22 +23,23 @@ private:
     float larghezza = 0.10f;
     float altezza = 0.15f;
     float translateSpeed;
-    float speed = 15;  
+    float speed = 15;
     float limZNeg = -20;
     float limZPos = 10;
     float spread = 1.0f;
 
     std::vector<glm::vec3> vectorPos;
     std::vector<glm::vec3> vectorDir;
+    std::vector<bool> bonusStatoAllaCreazione;
     int colpiSpecialiDisponibili = 0;
     bool isSpeciale = false;
 
     Shader shader;
     Model model;
 
-    std::vector<std::vector<glm::vec3>> trailHistory; 
+    std::vector<std::vector<glm::vec3>> trailHistory;
     int maxTrailPoints = 10;
-    
+
 
 public:
     // Costruttore
@@ -80,6 +81,10 @@ public:
         return vectorDir;
     }
 
+    std::vector<bool> getBonusStatoAllaCreazione() const {
+        return bonusStatoAllaCreazione;
+    }
+
     int getColpiSpecialiDisponibili() const {
         return colpiSpecialiDisponibili;
     }
@@ -99,6 +104,7 @@ public:
     void ripristinaColpiSparati() {
         vectorPos.clear();
         vectorDir.clear();
+        bonusStatoAllaCreazione.clear();
     }
 
     void setSpeed(float newSpeed) {
@@ -128,9 +134,13 @@ public:
     bool getIsSpeciale() const {
         return isSpeciale;
     }
-
     void inizializzaPos(glm::vec3 newPos) {
         vectorPos.push_back(newPos);
+        trailHistory.emplace_back();
+    }
+    void inizializzaPos(glm::vec3 newPos, bool statoBonusAttuale) {
+        vectorPos.push_back(newPos);
+        bonusStatoAllaCreazione.push_back(statoBonusAttuale);
         trailHistory.emplace_back();
     }
 
@@ -146,7 +156,7 @@ public:
         for (int i = 0; i < vectorPos.size(); i++)
         {
 
-            glm::mat4 modelCubo = glm::mat4(1.0f);	//identity matrix
+            glm::mat4 modelCubo = glm::mat4(1.0f);
             vectorPos[i] = vectorPos[i] + translateSpeed * vectorDir[i];
             if (trailHistory[i].empty() || glm::distance(trailHistory[i].back(), vectorPos[i]) > 0.05f) {
                 trailHistory[i].push_back(vectorPos[i]);
@@ -157,7 +167,7 @@ public:
             modelCubo = glm::translate(modelCubo, vectorPos[i]);
 
             if (color.x != 1.0f || color.y != 1.0f || color.z != 1.0f) {
-                angolo = calcolaAngolo(vectorDir[i],glm::vec3(0.0f, 0.0f, 1.0f));
+                angolo = calcolaAngolo(vectorDir[i], glm::vec3(0.0f, 0.0f, 1.0f));
                 if (vectorDir[i].x < 0.0f) {
                     angolo = -angolo;
                 }
@@ -168,8 +178,9 @@ public:
                 modelCubo = glm::scale(modelCubo, glm::vec3(larghezza, altezza, lunghezza));
                 shader.setMat4("model", modelCubo);
                 shader.setVec3("color", glm::vec3(1.0f, 0.0f, 0.0f));
-                model.Draw(shader);    
-            }else {
+                model.Draw(shader);
+            }
+            else {
                 modelCubo = glm::scale(modelCubo, glm::vec3(larghezza, altezza, lunghezza));
                 shader.setMat4("model", modelCubo);
                 shader.setVec3("color", color);
@@ -185,7 +196,7 @@ public:
 
                 glm::vec3 dir = glm::normalize(p2 - p1);
                 float len = glm::length(p2 - p1);
-                if (len > 1.0f) continue;  // Salta segmenti anomali
+                if (len > 1.0f) continue;
                 trailModel = glm::scale(trailModel, glm::vec3(larghezza * 0.3f, altezza * 0.3f, len));
                 shader.setMat4("model", trailModel);
                 shader.setVec3("color", color * (float(j) / maxTrailPoints));
@@ -196,41 +207,27 @@ public:
 
 
     float calcolaAngolo(glm::vec3 u, glm::vec3 v) {
-        // Calcolo del prodotto scalare
         float dotProduct = glm::dot(u, v);
-
-        // Calcolo delle norme dei vettori
         float norm_u = glm::length(u);
         float norm_v = glm::length(v);
-
-        // Calcolo del coseno dell'angolo
         float cosTheta = dotProduct / (norm_u * norm_v);
-
-        // Calcolo dell'angolo in radianti
         float theta = glm::acos(cosTheta);
-
         return theta;
     }
 
     bool isAllProiettiliAlienoOut() {
-
-        for (int i = 0; i < vectorPos.size(); i++)
-        {
-            if (vectorPos[i].z < limZPos)
-            {
+        for (int i = 0; i < vectorPos.size(); i++) {
+            if (vectorPos[i].z < limZPos) {
                 return false;
             }
         }
-
         return true;
-
     }
 
     void eliminaInPos(int i) {
-        std::vector<glm::vec3>::iterator itDir = vectorDir.begin() + i;
-        std::vector<glm::vec3>::iterator itPos = vectorPos.begin() + i;
-        vectorDir.erase(itDir);
-        vectorPos.erase(itPos);
+        vectorDir.erase(vectorDir.begin() + i);
+        vectorPos.erase(vectorPos.begin() + i);
+        bonusStatoAllaCreazione.erase(bonusStatoAllaCreazione.begin() + i);
     }
 
     void ripristinaColpiSpeciali() {
@@ -238,6 +235,7 @@ public:
         colpiSpecialiDisponibili = 0;
         vectorPos.clear();
         vectorDir.clear();
+        bonusStatoAllaCreazione.clear();
     }
 
     void incrementaColpiSpecialiDisponibili() {
@@ -252,11 +250,10 @@ public:
         if (!isSpeciale) {
             return;
         }
-        else if(colpiSpecialiDisponibili > 0 && isHittedNavicella){
+        else if (colpiSpecialiDisponibili > 0 && isHittedNavicella) {
             colpiSpecialiDisponibili--;
         }
     }
-
 };
 
-#endif 
+#endif

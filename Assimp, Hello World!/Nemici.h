@@ -63,7 +63,7 @@ public:
             n.isBonus = (i == bonusIndex);
             nemici.push_back(n);
 
-            std::cout << "[INIT] Nemico " << i << (n.isBonus ? " (BONUS)" : "") << " pos=(" << n.position.x << ", " << n.position.z << ") vel=" << n.speed << "\n";
+           // std::cout << "[INIT] Nemico " << i << (n.isBonus ? " (BONUS)" : "") << " pos=(" << n.position.x << ", " << n.position.z << ") vel=" << n.speed << "\n";
         }
     }
     
@@ -80,11 +80,12 @@ public:
         // nessuna rigenerazione: mantenere posizione nemici attuale
     }
 
-    void render() {
+    void render(Player& player) {
         shader->use();
         int vivi = 0;
         for (const auto& n : nemici) {
             if (!n.vivo) continue;
+            if (n.isBonus && player.haBonusSparo()) continue;
             vivi++;
             glm::mat4 modelMatrix = glm::mat4(1.0f);
             modelMatrix = glm::translate(modelMatrix, n.position);
@@ -97,10 +98,9 @@ public:
                 model.Draw(*shader);
             }
         }
-        std::cout << "[RENDER] Nemici vivi disegnati: " << vivi << std::endl;
     }
 
-    void checkCollisionWithPlayer(Player& player) {
+    void checkCollisionWithPlayer(Player& player, Proiettile& proiettile) {
         for (auto& n : nemici) {
             if (!n.vivo) continue;
 
@@ -108,17 +108,16 @@ public:
                 glm::vec2(n.position.x, n.position.z));
 
             if (dist < raggio) {
-                n.vivo = false;
 
-                if (n.isBonus) {
-                    player.abilitaSparoTemporaneo(10.0f);
-                    std::cout << "[BONUS] Raccoglimento bonus da player!" << std::endl;
+
+                if (n.isBonus && !player.haBonusSparo()) {
+                    player.abilitaSparoTemporaneo(5.0f);
                 }
                 else {
                     std::cout << "[COLLISIONE] Player ha impattato un nemico (non bonus)!" << std::endl;
                     // puoi eventualmente gestire danni o game over qui
                 }
-
+                n.vivo = false;
                 break; // gestisce una sola collisione alla volta
             }
         }
@@ -130,14 +129,14 @@ public:
                 glm::vec3 posProj = proiettile.getVecPos()[i];
                 float dist = glm::distance(glm::vec2(posProj.x, posProj.z), glm::vec2(n.position.x, n.position.z));
                 if (dist < raggio) {
-                    n.vivo = false;
-                    if (n.isBonus) {
-                        player.abilitaSparoTemporaneo(10.0f);
-                        std::cout << "[BONUS] Bonus raccolto! Sparo attivo per 10 secondi." << std::endl;
+                    if (n.isBonus && !player.haBonusSparo() && !proiettile.getBonusStatoAllaCreazione()[i]) {
+                        player.abilitaSparoTemporaneo(5.0f);
                     }
                     else {
-                        esplosione.inizializza(n.position, 1);
+                        std::cout << "[COLLISIONE] Player ha impattato un nemico (non bonus)!" << std::endl;
+                        // puoi eventualmente gestire danni o game over qui
                     }
+                    n.vivo = false;
                     proiettile.eliminaInPos(i);
                     break;
                 }

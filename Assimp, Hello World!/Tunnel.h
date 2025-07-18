@@ -102,10 +102,10 @@ public:
             // shader.setMat4("model", model);
             // glDrawArrays(GL_TRIANGLES, 0, 6);
 
-            seg.nemici.render();
+            seg.nemici.render(player);
             seg.nemici.checkCollision(proiettile, esplosione, player);
             seg.nemici.checkCollision(proiettileSpeciale, esplosione, player);
-            seg.nemici.checkCollisionWithPlayer(player);
+            seg.nemici.checkCollisionWithPlayer(player, proiettile);
         }
         glBindVertexArray(0);
     }

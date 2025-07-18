@@ -60,15 +60,21 @@ public:
         stbi_image_free(data);
     }
 
-    void draw() {
+    void draw(float alpha = 1.0f) {
         shader->use();
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureID);
         shader->setInt("backgroundTexture", 0);
+        shader->setFloat("alpha", alpha);
 
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
+
+        glDisable(GL_BLEND);
     }
 
     void cleanup() {

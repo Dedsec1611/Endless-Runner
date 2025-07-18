@@ -24,16 +24,25 @@ public:
     void setPos(glm::vec3 p) { posizione = p; }
 
     void abilitaSparoTemporaneo(float durata) {
-        puoSparare = true;
-        timerBonusSparo = durata;
+        if (!puoSparare) {
+            puoSparare = true;
+            timerBonusSparo = durata;
+            std::cout << "[BONUS] Sparo attivato per " << durata << " secondi.\n";
+        }
+        else {
+            std::cout << "[BONUS] Già attivo, ignorato.\n";
+        }
     }
-
+    float getBonusTime() {
+        return timerBonusSparo;
+    }
     void aggiornaBonus(float deltaTime) {
         if (puoSparare) {
             timerBonusSparo -= deltaTime;
             if (timerBonusSparo <= 0.0f) {
                 puoSparare = false;
                 timerBonusSparo = 0.0f;
+                std::cout << "[BONUS] Sparo disattivato\n";
             }
         }
     }
@@ -57,12 +66,12 @@ public:
         model.Draw(shader);
     }
     void inizializzaProiettile(Proiettile& p) {
-        p.inizializzaPos(posizione + glm::vec3(0.0f, 0.0f, -1.0f));
+        p.inizializzaPos(posizione + glm::vec3(0.0f, 0.0f, -1.0f), puoSparare);
         p.inizializzaDir(glm::vec3(0.0f, 0.0f, -1.0f));
     }
     void inizializzaProiettileSpeciale(Proiettile& p, int livello) {
         p.setIsSpeciale(true);
-        p.inizializzaPos(posizione + glm::vec3(0.0f, 0.0f, -1.0f));
+        p.inizializzaPos(posizione + glm::vec3(0.0f, 0.0f, -1.0f), puoSparare);
         p.inizializzaDir(glm::vec3(0.0f, 0.0f, -1.0f));
     }
 };
