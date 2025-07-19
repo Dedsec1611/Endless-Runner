@@ -75,10 +75,7 @@ void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        player.setPos(player.getPos() + glm::vec3(-10.0f * deltaTime, 0.0f, 0.0f));
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        player.setPos(player.getPos() + glm::vec3(10.0f * deltaTime, 0.0f, 0.0f));
+    
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && player.haBonusSparo()) {
         player.inizializzaProiettile(proiettileNavicella);
@@ -209,6 +206,7 @@ int main() {
         processInput(window);
 
         player.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f * deltaTime));
+        player.aggiorna(window, deltaTime);
         player.aggiornaBonus(deltaTime);
         if (player.haBonusSparo()) {
             std::cout << "[TIMER BONUS] tempo rimanente: " << player.getBonusTime() << " sec" << std::endl;
@@ -217,18 +215,22 @@ int main() {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glDisable(GL_DEPTH_TEST);
+        
         starShader->use();
         starfield.update(deltaTime);
         starfield.render();
         glEnable(GL_DEPTH_TEST);
 
         glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
 
         navicellaShader.use();
         navicellaShader.setMat4("view", view);
         navicellaShader.setMat4("projection", projection);
+        navicellaShader.setVec3("lightPos", glm::vec3(10.0f, 10.0f, 10.0f));
+        navicellaShader.setVec3("viewPos", glm::vec3(0.0f, 0.0f, 10.0f));
+        navicellaShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        navicellaShader.setVec3("objectColor", glm::vec3(0.0f, 0.5f, 1.0f));
         player.render();
 
         proiettileNavicella.setTranslateSpeed(proiettileNavicella.getSpeed() * deltaTime);
