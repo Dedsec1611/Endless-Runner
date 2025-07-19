@@ -218,8 +218,9 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glDisable(GL_DEPTH_TEST);
-        background->draw(1.0f - alpha);
-        background2->draw(alpha);
+        starShader->use();
+        starfield.update(deltaTime);
+        starfield.render();
         glEnable(GL_DEPTH_TEST);
 
         glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
