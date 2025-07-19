@@ -79,7 +79,8 @@ public:
         for (auto& seg : segments) {
             seg.nemici.update(deltaTime);
 
-            if (seg.position.z - segmentLength > playerZ) {
+            float distanzaMassima = 50.0f; 
+            if (seg.position.z - segmentLength > playerZ + distanzaMassima) {
                 seg.position.z -= segmentLength * maxSegments;
                 seg.nemici.init(seg.position, modelNemico, nemicoShader);
                 seg.nemici.setBonusModel(&modelBonus);
@@ -87,7 +88,7 @@ public:
         }
     }
 
-    void draw(Shader& shader, Proiettile& proiettile, Proiettile& proiettileSpeciale, Player& player, Esplosione& esplosione) {
+    void draw(Shader& shader, Proiettile& proiettile, Proiettile& proiettileSpeciale, Player& player, Esplosione& esplosione, bool& giocoTermianto, bool& nemiciAttivi) {
         shader.use();
 
         glActiveTexture(GL_TEXTURE0);
@@ -105,7 +106,7 @@ public:
             seg.nemici.render(player);
             seg.nemici.checkCollision(proiettile, esplosione, player);
             seg.nemici.checkCollision(proiettileSpeciale, esplosione, player);
-            seg.nemici.checkCollisionWithPlayer(player, proiettile);
+            seg.nemici.checkCollisionWithPlayer(player, proiettile, giocoTermianto, nemiciAttivi);
         }
         glBindVertexArray(0);
     }

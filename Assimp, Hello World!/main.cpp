@@ -14,6 +14,7 @@
 #include <random>
 #include <cmath>
 #include <stack>
+#include <vector>
 
 #pragma comment(lib, "irrKlang.lib") 
 
@@ -35,16 +36,18 @@
 #include "Tunnel.h"
 #include "Background.h"
 
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+unsigned int SCR_WIDTH;
+unsigned int SCR_HEIGHT;
+
+bool giocoTerminato = false;
+
+float tempoAvvioNemici = 5.0f; 
+float timerNemici = 0.0f;
+bool nemiciAttivi = false;
 
 Tunnel tunnel;
 Player player;
 Background* background;
-Background* background2;
-float transitionTime = 10.0f;
-float transitionTimer = 0.0f;
-bool fadeOut = true;
 
 Shader* shaderProgram;
 Shader alienoShader;
@@ -54,7 +57,6 @@ Proiettile proiettileNavicella;
 Proiettile proiettileSpeciale;
 Shader proiettileShader;
 Proiettile proiettiliPlayer;
-
 
 Esplosione esplosione;
 Shader barrieraShader;
@@ -94,8 +96,14 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Endless Runner", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Endless Runner", monitor, NULL);
+
+    SCR_WIDTH = mode->width;
+    SCR_HEIGHT = mode->height;
+
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -113,51 +121,49 @@ int main() {
 
     Model modelNavicella("../src/models/navicella/navicella.obj");
     modelAlieno1 = Model("../src/models/alieni/alieno1/alieno1.obj");
-    Shader navicellaShader("navicella.vs", "navicella.fs");
+    Shader playerShader("player.vs", "player.fs");
     alienoShader = Shader("alieno.vs", "alieno.fs");
     shaderProgram = new Shader("basic.vs", "basic.fs");
     Shader* backgroundShader = new Shader("background.vs", "background.fs");
     proiettileShader = Shader("proiettile.vs", "proiettile.fs");
     modelCubo = Model("../src/models/cubo.obj");
-    //modelBonus = Model("../src/models/bonus/bonus.obj"); temporaneo
     modelBonus = modelCubo;
-    // Setup oggetti
-    player.setShader(navicellaShader);
+
+    player.setShader(playerShader);
     player.setModel(modelNavicella);
 
     proiettileNavicella.setShader(proiettileShader);
     proiettileNavicella.setModel(modelCubo);
     proiettileSpeciale.setShader(proiettileShader);
-   // proiettileSpeciale.setModel(modelAlieno1);
 
-   
     barrieraShader = Shader("barriera.vs", "barriera.fs");
 
-    esplosione.setShader(barrieraShader);
+   /* esplosione.setShader(barrieraShader);
     esplosione.setModel(modelCubo);
-    esplosione.setSuono(&suono);
+    esplosione.setSuono(&suono);*/
 
     Shader shaderBlur("blur.vs", "blur.fs");
     Shader shaderBloomFinal("bloom_final.vs", "bloom_final.fs");
-   /* barriera.setShader(alienoShader);
-    barriera.setModel(modelAlieno1);
-    barriera.inizializzaMaps();*/
 
     tunnel.modelNemico = modelAlieno1;
     tunnel.nemicoShader = &alienoShader;
     tunnel.modelBonus = modelBonus;
     tunnel.init();
 
-    background = new Background("../src/images/scenario1.png", backgroundShader);
-    background2 = new Background("../src/images/scenario2.png", backgroundShader);
+    background = new Background(backgroundShader);
+    background->addBackground("../src/images/scenario1.png");
+    background->addBackground("../src/images/scenario2.png");
+    background->addBackground("../src/images/scenario3.png");
 
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        transitionTimer += deltaTime;
-        float alpha = fmod(transitionTimer, transitionTime) / transitionTime;
+        timerNemici += deltaTime;
+        if (timerNemici >= tempoAvvioNemici) {
+            nemiciAttivi = true;
+        }
 
         processInput(window);
 
@@ -167,20 +173,20 @@ int main() {
             std::cout << "[TIMER BONUS] tempo rimanente: " << player.getBonusTime() << " sec" << std::endl;
         }
         tunnel.update(deltaTime, player.getPos().z);
+       
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glDisable(GL_DEPTH_TEST);
-        background->draw(1.0f - alpha);
-        background2->draw(alpha);
+        background->updateAndDraw(deltaTime);
         glEnable(GL_DEPTH_TEST);
 
         glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
 
-        navicellaShader.use();
-        navicellaShader.setMat4("view", view);
-        navicellaShader.setMat4("projection", projection);
+        playerShader.use();
+        playerShader.setMat4("view", view);
+        playerShader.setMat4("projection", projection);
         player.render();
 
         proiettileNavicella.setTranslateSpeed(proiettileNavicella.getSpeed() * deltaTime);
@@ -189,7 +195,9 @@ int main() {
         proiettileSpeciale.render(glm::vec3(1.0f, 0.0f, 0.0f));
 
         esplosione.setTranslateSpeed(esplosione.getSpeed() * deltaTime);
-        esplosione.render();
+        esplosione.setShader(barrieraShader);
+        esplosione.setModel(modelCubo);
+        esplosione.setSuono(&suono);
 
         shaderProgram->use();
         shaderProgram->setVec3("objectColor", glm::vec3(0.2f, 0.2f, 0.2f));
@@ -205,7 +213,11 @@ int main() {
         proiettileShader.setMat4("projection", projection);
         proiettileNavicella.render(glm::vec3(1.0f, 1.0f, 1.0f));
         proiettileSpeciale.render(glm::vec3(1.0f, 0.0f, 0.0f));
-        tunnel.draw(*shaderProgram, proiettileNavicella, proiettileSpeciale, player, esplosione);
+        tunnel.draw(*shaderProgram, proiettileNavicella, proiettileSpeciale, player, esplosione, giocoTerminato, nemiciAttivi);
+        if (giocoTerminato) {
+            std::cout << "[GAME OVER] Il player è stato colpito!" << std::endl;
+            break;
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -213,12 +225,9 @@ int main() {
 
     tunnel.cleanup();
     background->cleanup();
-    background2->cleanup();
     delete shaderProgram;
     delete backgroundShader;
     delete background;
-    delete background2;
     glfwTerminate();
     return 0;
 }
-

@@ -28,7 +28,7 @@ private:
     Model* bonusModel = nullptr;
 
     int minNemici = 3;
-    int maxNemici = 8;
+    int maxNemici = 5;
     float areaX = 6.0f;
     float areaZ = 8.0f;
     float minSpeed = 1.0f;
@@ -56,28 +56,25 @@ public:
         for (int i = 0; i < numNemici; ++i) {
             Nemico n;
             float offsetX = ((std::rand() / (float)RAND_MAX) * 2.0f - 1.0f) * areaX;
-            float offsetZ = ((std::rand() / (float)RAND_MAX) * areaZ);
-            n.position = glm::vec3(basePosition.x + offsetX, basePosition.y, basePosition.z - offsetZ);
+            float ritardoZ = 50.0f + ((std::rand() / (float)RAND_MAX) * 20.0f);
+            n.position = glm::vec3(basePosition.x + offsetX, basePosition.y, basePosition.z - ritardoZ);
+
             n.speed = minSpeed + static_cast<float>(rand()) / RAND_MAX * (maxSpeed - minSpeed);
             n.vivo = true;
             n.isBonus = (i == bonusIndex);
             nemici.push_back(n);
-
-           // std::cout << "[INIT] Nemico " << i << (n.isBonus ? " (BONUS)" : "") << " pos=(" << n.position.x << ", " << n.position.z << ") vel=" << n.speed << "\n";
         }
     }
-    
 
     void update(float deltaTime) {
         for (auto& n : nemici) {
             if (!n.vivo) continue;
-            n.position.z += n.speed * deltaTime; // avanza verso la navicella
+            n.position.z += n.speed * deltaTime;
         }
     }
 
     void setPosition(glm::vec3 newPos) {
         basePosition = newPos;
-        // nessuna rigenerazione: mantenere posizione nemici attuale
     }
 
     void render(Player& player) {
@@ -100,7 +97,7 @@ public:
         }
     }
 
-    void checkCollisionWithPlayer(Player& player, Proiettile& proiettile) {
+    void checkCollisionWithPlayer(Player& player, Proiettile& proiettile, bool& giocoTerminato, bool& nemiciAttivi) {
         for (auto& n : nemici) {
             if (!n.vivo) continue;
 
@@ -108,20 +105,20 @@ public:
                 glm::vec2(n.position.x, n.position.z));
 
             if (dist < raggio) {
-
-
                 if (n.isBonus && !player.haBonusSparo()) {
                     player.abilitaSparoTemporaneo(5.0f);
                 }
                 else {
+                    if (!nemiciAttivi) return;
                     std::cout << "[COLLISIONE] Player ha impattato un nemico (non bonus)!" << std::endl;
-                    // puoi eventualmente gestire danni o game over qui
+                    giocoTerminato = true;
                 }
                 n.vivo = false;
-                break; // gestisce una sola collisione alla volta
+                break;
             }
         }
     }
+
     void checkCollision(Proiettile& proiettile, Esplosione& esplosione, Player& player) {
         for (auto& n : nemici) {
             if (!n.vivo) continue;
@@ -133,10 +130,10 @@ public:
                         player.abilitaSparoTemporaneo(5.0f);
                     }
                     else {
-                        std::cout << "[COLLISIONE] Player ha impattato un nemico (non bonus)!" << std::endl;
-                        // puoi eventualmente gestire danni o game over qui
+                        std::cout << "[COLLISIONE] Player ha colpito un nemico!" << std::endl;
                     }
                     n.vivo = false;
+                    esplosione.inizializza(n.position, 5);
                     proiettile.eliminaInPos(i);
                     break;
                 }

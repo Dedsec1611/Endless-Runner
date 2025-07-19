@@ -118,6 +118,12 @@
     <None Include="background.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="player.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="player.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

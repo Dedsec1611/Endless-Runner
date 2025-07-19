@@ -172,6 +172,8 @@
     <None Include="basic.vs" />
     <None Include="health_bar.fs" />
     <None Include="health_bar.vs" />
+    <None Include="player.fs" />
+    <None Include="player.vs" />
     <None Include="stencilTesting.fs" />
     <None Include="stencilTesting.vs" />
     <None Include="alieno.fs" />
