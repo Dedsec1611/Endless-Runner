@@ -15,6 +15,9 @@ private:
 
     bool puoSparare = false;
     float timerBonusSparo = 0.0f;
+    bool spazioPremutoPrima = false;
+    float tempoUltimoSparo = 0.0f;
+    float intervalloSparo = 0.2f;
 
     float limiteMinX = -4.0f;
     float limiteMaxX = 4.0f;
@@ -177,8 +180,22 @@ public:
     }
 
     void inizializzaProiettile(Proiettile& p) {
-        p.inizializzaPos(posizione + glm::vec3(0.0f, 0.0f, -1.0f), puoSparare);
-        p.inizializzaDir(glm::vec3(0.0f, 0.0f, -1.0f));
+        glm::vec3 direzione = glm::vec3(0.0f, 0.0f, -1.0f);
+        glm::vec3 posizioneSparo = posizione + direzione * 2.0f;
+        p.inizializzaPos(posizioneSparo, true);
+        p.inizializzaDir(direzione);
+    }
+
+    void gestisciSparo(GLFWwindow* window, Proiettile& proiettile) {
+        bool spazioPremutoOra = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
+        float tempoAttuale = glfwGetTime();
+
+        if (spazioPremutoOra && !spazioPremutoPrima && puoSparare && (tempoAttuale - tempoUltimoSparo >= intervalloSparo)) {
+            inizializzaProiettile(proiettile);
+            tempoUltimoSparo = tempoAttuale;
+        }
+
+        spazioPremutoPrima = false;
     }
 
     void inizializzaProiettileSpeciale(Proiettile& p, int livello) {

@@ -58,6 +58,7 @@ Proiettile proiettileNavicella;
 Proiettile proiettileSpeciale;
 Shader proiettileShader;
 Proiettile proiettiliPlayer;
+Proiettile proiettileBoss;
 
 Esplosione esplosione;
 Shader barrieraShader;
@@ -71,6 +72,7 @@ Model modelBonus;
 Boss boss;
 Shader bossBarShader;
 Model modelBoss;
+Shader  healthBarShader;
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -88,8 +90,8 @@ void processInput(GLFWwindow* window) {
     
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && player.haBonusSparo()) {
-        player.inizializzaProiettile(proiettileNavicella);
-        player.inizializzaProiettileSpeciale(proiettileSpeciale, 1);
+        player.gestisciSparo(window,proiettileNavicella);
+        //player.inizializzaProiettileSpeciale(proiettileSpeciale, 1);
     }
 }
 
@@ -183,9 +185,10 @@ int main() {
 
     modelBoss = Model("../src/models/alieni/alieno1/alieno1.obj");
     bossBarShader = Shader("barriera.vs", "barriera.fs");
+    healthBarShader = Shader("health_bar.vs", "health_bar.fs");
 
     boss.setModel(modelBoss);
-    boss.setShader(Shader("boss.vs", "boss.fs"));
+    boss.setShader(alienoShader);
     boss.setProiettileShader(proiettileShader);
     boss.setProiettileModel(modelCubo);
     boss.initHealthBar();
@@ -196,6 +199,10 @@ int main() {
     proiettileNavicella.setShader(proiettileShader);
     proiettileNavicella.setModel(modelCubo);
     proiettileSpeciale.setShader(proiettileShader);
+
+    proiettileBoss.setShader(proiettileShader);
+    proiettileBoss.setModel(modelCubo);
+    proiettileBoss.setSpeed(5.0f);
 
     barrieraShader = Shader("barriera.vs", "barriera.fs");
 
@@ -217,9 +224,29 @@ int main() {
     background->addBackground("../src/images/scenario3.png");
 
     while (!glfwWindowShouldClose(window)) {
+
+        glm::mat4 view;
+        if (faseBoss) {
+            view = glm::lookAt(glm::vec3(0.0f, 3.0f, 5.0f), glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(0, 1, 0));
+        }
+        else {
+            view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
+        }
+
+
+        glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
+
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+
+        tempoGioco += deltaTime;
+        if (!faseBoss && tempoGioco >= tempoBoss) {
+            faseBoss = true;
+            boss.activate();
+            player.setPos(glm::vec3(0.0f, 0.0f, 0.0f));
+            
+        }
 
         timerNemici += deltaTime;
         if (timerNemici >= tempoAvvioNemici) {
@@ -228,13 +255,12 @@ int main() {
 
         processInput(window);
 
-        player.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f * deltaTime));
         player.aggiorna(window, deltaTime);
         player.aggiornaBonus(deltaTime);
         if (player.haBonusSparo()) {
             std::cout << "[TIMER BONUS] tempo rimanente: " << player.getBonusTime() << " sec" << std::endl;
         }
-        tunnel.update(deltaTime, player.getPos().z);
+       // tunnel.update(deltaTime, player.getPos().z);
        
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -247,8 +273,8 @@ int main() {
         starfield.render();
         glEnable(GL_DEPTH_TEST);
 
-        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
-        glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
+       // glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
+   
 
         playerShader.use();
         playerShader.setMat4("view", view);
@@ -260,10 +286,17 @@ int main() {
         // navicellaShader.setVec3("viewPos", glm::vec3(0.0f, 0.0f, 10.0f));
         // navicellaShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
         // navicellaShader.setVec3("objectColor", glm::vec3(0.0f, 0.5f, 1.0f));
+
         player.render();
+
+        healthBarShader.use();
+        healthBarShader.setMat4("projection", projection);
 
         proiettileNavicella.setTranslateSpeed(proiettileNavicella.getSpeed() * deltaTime);
         proiettileSpeciale.setTranslateSpeed(proiettileSpeciale.getSpeed() * deltaTime);
+        proiettileBoss.setTranslateSpeed(proiettileBoss.getSpeed()* deltaTime);
+
+
         proiettileNavicella.render(glm::vec3(1.0f));
         proiettileSpeciale.render(glm::vec3(1.0f, 0.0f, 0.0f));
 
@@ -286,8 +319,23 @@ int main() {
         proiettileShader.setMat4("projection", projection);
         proiettileNavicella.render(glm::vec3(1.0f, 1.0f, 1.0f));
         proiettileSpeciale.render(glm::vec3(1.0f, 0.0f, 0.0f));
-        tunnel.draw(*shaderProgram, proiettileNavicella, proiettileSpeciale, player, esplosione, giocoTerminato, nemiciAttivi);
-        if (giocoTerminato) {
+        
+        if (!faseBoss) {
+            player.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f * deltaTime));
+
+            tunnel.update(deltaTime, player.getPos().z);
+            tunnel.draw(*shaderProgram, proiettileNavicella, proiettileSpeciale, player, esplosione, giocoTerminato, nemiciAttivi);
+        }
+        else {
+            player.abilitaSparoTemporaneo(50000.0f);
+            boss.aggiorna(deltaTime, glfwGetTime());
+            boss.checkIsHitted(proiettileNavicella, esplosione);
+            boss.checkIsHitted(proiettileSpeciale, esplosione);
+            boss.checkCollisionPlayer(player, esplosione, giocoTerminato);
+            boss.render(player, esplosione, view, projection, healthBarShader);
+        }
+       // tunnel.draw(*shaderProgram, proiettileNavicella, proiettileSpeciale, player, esplosione, giocoTerminato, nemiciAttivi);
+        if (giocoTerminato || boss.isDead()) {
             std::cout << "[GAME OVER] Il player � stato colpito!" << std::endl;
             break;
         }

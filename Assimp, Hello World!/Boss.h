@@ -11,17 +11,17 @@
 #include "navicella.h"
 #include "esplosione.h"
 #include "barriera.h"
-
+#include "Player.h"
 
 class Boss {
 private:
-    glm::vec3 pos = glm::vec3(0.0f, 0.0f, -15.0f);
+    glm::vec3 pos = glm::vec3(0.0f, 0.0f, -20.0f);
     float speed = 2.0f;
     int livello = 1;
     float movementRange = 6.0f;
     float direction = 1.0f;
-    float health = 100.0f;
-    float maxHealth = 100.0f;
+    float health = 1000.0f;
+    float maxHealth = 1000.0f;
     double lastShotTime = 0.0f;
     double shootInterval = 1.0f;
     bool active = false;
@@ -111,7 +111,7 @@ public:
         }
     }
 
-    void  render(Navicella& navicella, Barriera& barriera, Esplosione& esplosione,
+    void  render(Player& player,Esplosione& esplosione,
         const glm::mat4& view, const glm::mat4& projection, Shader& barShader) {
             
         if (!active) return;
@@ -130,8 +130,7 @@ public:
         proiettileShader.setMat4("projection", projection);
         for (auto& p : proiettili) {
             p.render(glm::vec3(1.0f, 0.1f, 0.1f));
-            navicella.checkIsHitted(p, esplosione, false);
-            barriera.renderBarriere(p);
+           // player.checkIsHitted(p, esplosione, false);
         }
 
         // Health bar
@@ -228,16 +227,31 @@ public:
                 //esplosione.inizializza(pos);
 
                 if (proiettile.getIsSpeciale()) {
-                    hit(25.0f);
+                    hit(15.0f);
                 }
                 else {
-                    hit(10.0f);
+                    hit(1.0f);
                 }
                 if (health == 0) {
                     esplosione.inizializza(pos, 5);
                 }
                 proiettile.eliminaInPos(i); 
                 std::cout << "[BOSS] Colpito! HP: " << health << std::endl;
+                break;
+            }
+        }
+    }
+
+
+    void checkCollisionPlayer(Player& player, Esplosione& esplosione, bool& giocoTerminato) {
+        for (int i = 0; i < proiettili.size(); i++) {
+            glm::vec3 posBullet = proiettili[i].getVecPos()[0];
+            float distanza = glm::distance(glm::vec2(posBullet.x, posBullet.z), glm::vec2(player.getPos().x, player.getPos().z));
+            if (distanza < 0.5f) {
+                std::cout << "[BOSS] Il player è stato colpito!" << std::endl;
+                giocoTerminato = true;
+                esplosione.inizializza(player.getPos(), 1);
+                proiettili.erase(proiettili.begin() + i);
                 break;
             }
         }
