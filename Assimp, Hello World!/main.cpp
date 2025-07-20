@@ -68,10 +68,18 @@ Model modelCubo;
 Suono suono;
 Model modelBonus;
 
+Boss boss;
+Shader bossBarShader;
+Model modelBoss;
+
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
+
+float tempoGioco = 0.0f;
+float tempoBoss = 60.0f; // tempo dopo il quale appare il boss
+bool faseBoss = false;
 
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -172,6 +180,15 @@ int main() {
     proiettileShader = Shader("proiettile.vs", "proiettile.fs");
     modelCubo = Model("../src/models/cubo.obj");
     modelBonus = modelCubo;
+
+    modelBoss = Model("../src/models/alieni/alieno1/alieno1.obj");
+    bossBarShader = Shader("barriera.vs", "barriera.fs");
+
+    boss.setModel(modelBoss);
+    boss.setShader(Shader("boss.vs", "boss.fs"));
+    boss.setProiettileShader(proiettileShader);
+    boss.setProiettileModel(modelCubo);
+    boss.initHealthBar();
 
     player.setShader(playerShader);
     player.setModel(modelNavicella);
