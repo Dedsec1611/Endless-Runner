@@ -95,14 +95,6 @@ public:
 
         double now = glfwGetTime();
         float speed = 10.0f;
-      /*  if (moveLeft)
-            posizione.x -= speed * deltaTime;
-        if (moveRight)
-            posizione.x += speed * deltaTime;*/
-
-        //// Clamping dopo movimento
-        //if (posizione.x < limiteMinX) posizione.x = limiteMinX;
-        //if (posizione.x > limiteMaxX) posizione.x = limiteMaxX;
         
         float maxTilt = glm::radians(15.0f);
         float tiltSpeed = glm::radians(80.0f);
