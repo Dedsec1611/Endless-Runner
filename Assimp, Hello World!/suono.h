@@ -212,8 +212,9 @@ public:
 
 
     void stopSoundMovimentoUfo() {
-        if (suonoUfo != nullptr) {
+        if (suonoUfo) {
             suonoUfo->stop();
+            suonoUfo = nullptr;
         }
     }
 
@@ -239,19 +240,29 @@ public:
         }
     }
 
+
     bool getAttivoGlobale() const {
         return audioAttivoGlobale;
     }
     void playMusicaSottofondo() {
-        if (audioAttivoGlobale) {
-            musicaAttiva = soundEngine->play2D(musicaSottofondo, true, false, true); // loop = true
+        if (audioAttivoGlobale && soundEngine && musicaSottofondo) {
+            musicaAttiva = soundEngine->play2D(musicaSottofondo, true, false, true); 
         }
     }
 
     void stopMusicaSottofondo() {
-        if (musicaAttiva != nullptr) {
+        if (musicaAttiva) {
             musicaAttiva->stop();
+            musicaAttiva = nullptr;
         }
+    }
+
+    void setVolumeGlobale(float vol) {
+        if (soundEngine)
+            soundEngine->setSoundVolume(vol);
+    }
+    float getVolumeGlobale() const {
+        return soundEngine ? soundEngine->getSoundVolume() : 1.0f;
     }
 
 

@@ -174,6 +174,8 @@
     <None Include="health_bar.vs" />
     <None Include="player.fs" />
     <None Include="player.vs" />
+    <None Include="star.fs" />
+    <None Include="star.vs" />
     <None Include="stencilTesting.fs" />
     <None Include="stencilTesting.vs" />
     <None Include="alieno.fs" />
@@ -226,6 +228,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="roccia.h" />
     <ClInclude Include="shader_m.h" />
+    <ClInclude Include="starfield.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="suono.h" />
     <ClInclude Include="Tunnel.h" />
@@ -236,12 +239,16 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\freetype.redist.2.8.0.1\build\native\freetype.redist.targets" Condition="Exists('..\packages\freetype.redist.2.8.0.1\build\native\freetype.redist.targets')" />
+    <Import Project="..\packages\freetype.2.8.0.1\build\native\freetype.targets" Condition="Exists('..\packages\freetype.2.8.0.1\build\native\freetype.targets')" />
     <Import Project="..\packages\glfw.3.3.3\build\native\glfw.targets" Condition="Exists('..\packages\glfw.3.3.3\build\native\glfw.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
+    <Error Condition="!Exists('..\packages\freetype.redist.2.8.0.1\build\native\freetype.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\freetype.redist.2.8.0.1\build\native\freetype.redist.targets'))" />
+    <Error Condition="!Exists('..\packages\freetype.2.8.0.1\build\native\freetype.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\freetype.2.8.0.1\build\native\freetype.targets'))" />
     <Error Condition="!Exists('..\packages\glfw.3.3.3\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glfw.3.3.3\build\native\glfw.targets'))" />
   </Target>
 </Project>
