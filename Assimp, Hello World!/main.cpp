@@ -80,7 +80,7 @@ float lastFrame = 0.0f;
 Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
 float tempoGioco = 0.0f;
-float tempoBoss = 1000.0f; // tempo dopo il quale appare il boss
+float tempoBoss = 10.0f; // tempo dopo il quale appare il boss
 bool faseBoss = false;
 
 bool transizioneBossAttiva = false;
@@ -253,13 +253,14 @@ int main() {
         proiettileShader = Shader("proiettile.vs", "proiettile.fs");
         modelCubo = Model("../src/models/cubo.obj");
         modelBonus = modelCubo;
-
-        modelBoss = Model("../src/models/alieni/alieno1/alieno1.obj");
+        Shader enemyShader("enemy_shader.vs", "enemy_shader.fs");
+        modelBoss = Model("../src/models/enemy/enemy.obj");
         bossBarShader = Shader("barriera.vs", "barriera.fs");
         healthBarShader = Shader("health_bar.vs", "health_bar.fs");
 
         boss.setModel(modelBoss);
-        boss.setShader(alienoShader);
+        boss.setPos(glm::vec3(0.0f, 0.0f, -15.0f));  // davanti alla camera
+        boss.setShader(enemyShader);
         boss.setProiettileShader(proiettileShader);
         boss.setProiettileModel(modelCubo);
         boss.initHealthBar();
@@ -337,8 +338,9 @@ int main() {
                 if (t >= 1.0f) transizioneBossAttiva = false;
             }
             else if (faseBoss) {
-                glm::vec3 eye = player.getPos() + glm::vec3(0.0f, 0.5f, 0.0f);
-                glm::vec3 center = eye + glm::vec3(0.0f, 0.0f, -1.0f);
+                // Posizione della camera dietro e sopra la navicella
+                glm::vec3 eye = player.getPos() + glm::vec3(0.0f, 2.0f, 5.0f);
+                glm::vec3 center = player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f);
                 view = glm::lookAt(eye, center, glm::vec3(0, 1, 0));
             }
             else {

@@ -31,7 +31,7 @@ public:
     Model modelNemico;
     Model modelBonus;
     Shader* nemicoShader;
-
+	
     Tunnel() {
         segmentLength = 20.0f;
         maxSegments = 5;

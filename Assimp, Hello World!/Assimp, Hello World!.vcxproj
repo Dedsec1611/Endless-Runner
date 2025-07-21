@@ -170,6 +170,8 @@
     <None Include="background.vs" />
     <None Include="basic.fs" />
     <None Include="basic.vs" />
+    <None Include="enemy_shader.fs" />
+    <None Include="enemy_shader.vs" />
     <None Include="esplosione.fs" />
     <None Include="health_bar.fs" />
     <None Include="health_bar.vs" />
