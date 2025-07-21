@@ -136,6 +136,7 @@ public:
                 if (n.isBonus && !player.haBonusSparo()) {
                     player.abilitaSparoTemporaneo(5.0f);
                 }
+                
                 else {
                     if (!nemiciAttivi) return;
                     std::cout << "[COLLISIONE] Player ha impattato un nemico (non bonus)!" << std::endl;
