@@ -327,6 +327,8 @@ public:
     void render() {
 
         shader.use();
+        shader.setFloat("time", glfwGetTime());
+
 
         for (int i = 0; i < vecPos.size(); i++) {
 

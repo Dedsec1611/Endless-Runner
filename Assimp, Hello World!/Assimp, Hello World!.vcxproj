@@ -170,6 +170,9 @@
     <None Include="background.vs" />
     <None Include="basic.fs" />
     <None Include="basic.vs" />
+    <None Include="enemy_shader.fs" />
+    <None Include="enemy_shader.vs" />
+    <None Include="esplosione.fs" />
     <None Include="health_bar.fs" />
     <None Include="health_bar.vs" />
     <None Include="mirino.fs" />
@@ -219,6 +222,7 @@
     <ClInclude Include="Boss.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="esplosione.h" />
+    <ClInclude Include="GestoreCollisioni.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="navicella.h" />

@@ -46,6 +46,10 @@ public:
     glm::vec3 getPos() const {
         return pos;
     }
+    void setPos(const glm::vec3& nuovaPosizione) {
+        pos = nuovaPosizione;
+    }
+
     void activate() {
         active = true;
         proiettili.clear();
@@ -120,7 +124,7 @@ public:
         shader.use();
         glm::mat4 modelMat = glm::mat4(1.0f);
         modelMat = glm::translate(modelMat, pos);
-        modelMat = glm::scale(modelMat, glm::vec3(1.5f));
+        modelMat = glm::scale(modelMat, glm::vec3(10.5f));
         shader.setMat4("model", modelMat);
         model.Draw(shader);
 

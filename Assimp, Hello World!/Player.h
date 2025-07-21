@@ -32,6 +32,10 @@ private:
     float dodgeDuration = 0.5f;
     float dodgeAngle = 0.0f;
     int dodgeDirection = 0; // -1 = sinistra, 1 = destra
+    int vite = 2;
+    bool invincibile = false;
+    float timerInvincibilita = 0.0f;
+
 
 public:
     Player() : posizione(0.0f, 0.0f, 0.0f) {}
@@ -92,7 +96,7 @@ public:
 
     void aggiorna(GLFWwindow* window, float deltaTime) {
         aggiornaSchivata(deltaTime);
-
+        aggiornaInvincibilita(deltaTime);
         static bool aPressedLastFrame = false;
         static bool dPressedLastFrame = false;
 
@@ -176,6 +180,11 @@ public:
         modelMatrix = glm::scale(modelMatrix, glm::vec3(0.4f));
 
         shader.setMat4("model", modelMatrix);
+        if (invincibile) {
+            float blink = sin(glfwGetTime() * 10.0f);
+            if (blink < 0.0f) return; // lampeggia
+        }
+
         model.Draw(shader);
     }
 
@@ -203,4 +212,28 @@ public:
         p.inizializzaPos(posizione + glm::vec3(0.0f, 0.0f, -1.0f), puoSparare);
         p.inizializzaDir(glm::vec3(0.0f, 0.0f, -1.0f));
     }
+    void subisciDanno() {
+        if (!invincibile && vite > 0) {
+            vite--;
+            invincibile = true;
+            timerInvincibilita = 3.0f;
+            std::cout << "[PLAYER] Colpito! Vite rimaste: " << vite << std::endl;
+        }
+    }
+
+
+    void aggiornaInvincibilita(float deltaTime) {
+        if (invincibile) {
+            timerInvincibilita -= deltaTime;
+            if (timerInvincibilita <= 0.0f) {
+                invincibile = false;
+                timerInvincibilita = 0.0f;
+            }
+        }
+    }
+
+    bool isInvincibile() const { return invincibile; }
+    int getVite() const { return vite; }
+    bool isGameOver() const { return vite <= 0; }
+
 };

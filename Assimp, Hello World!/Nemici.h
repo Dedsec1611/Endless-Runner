@@ -177,4 +177,6 @@ public:
         }
         return true;
     }
+    std::vector<Nemico>& getNemiciRiferimento() { return nemici; }
+
 };

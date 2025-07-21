@@ -132,6 +132,15 @@
     <None Include="mirino.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="esplosione.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="enemy_shader.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="enemy_shader.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -206,6 +215,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="starfield.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GestoreCollisioni.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
