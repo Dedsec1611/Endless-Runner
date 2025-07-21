@@ -124,6 +124,14 @@
     <None Include="player.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="star.fs" />
+    <None Include="star.vs" />
+    <None Include="mirino.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="mirino.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -195,6 +203,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Nemici.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="starfield.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

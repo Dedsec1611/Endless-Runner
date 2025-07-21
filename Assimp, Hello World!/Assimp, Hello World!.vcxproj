@@ -172,6 +172,8 @@
     <None Include="basic.vs" />
     <None Include="health_bar.fs" />
     <None Include="health_bar.vs" />
+    <None Include="mirino.fs" />
+    <None Include="mirino.vs" />
     <None Include="player.fs" />
     <None Include="player.vs" />
     <None Include="star.fs" />

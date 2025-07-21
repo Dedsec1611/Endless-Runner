@@ -83,25 +83,22 @@ float tempoGioco = 0.0f;
 float tempoBoss = 10.0f; // tempo dopo il quale appare il boss
 bool faseBoss = false;
 
-bool transizioneBossAttiva = false;
-float tempoTransizioneBoss = 2.0f;  // secondi
-float timerTransizioneBoss = 0.0f;
 
 unsigned int crosshairVAO = 0, crosshairVBO = 0, crosshairTexture = 0;
 Shader* crosshairShader = nullptr;
 
 void initCrosshair() {
-    float scaleY = 0.1f;
-    float scaleX = scaleY * ((float)SCR_HEIGHT / SCR_WIDTH);
     float quadVertices[] = {
-    -scaleX,  scaleY, 0.0f, 1.0f,
-    -scaleX, -scaleY, 0.0f, 0.0f,
-     scaleX, -scaleY, 1.0f, 0.0f,
+        // positions    // texCoords
+        -0.05f,  0.05f, 0.0f, 1.0f,
+        -0.05f, -0.05f, 0.0f, 0.0f,
+         0.05f, -0.05f, 1.0f, 0.0f,
 
-    -scaleX,  scaleY, 0.0f, 1.0f,
-     scaleX, -scaleY, 1.0f, 0.0f,
-     scaleX,  scaleY, 1.0f, 1.0f
+        -0.05f,  0.05f, 0.0f, 1.0f,
+         0.05f, -0.05f, 1.0f, 0.0f,
+         0.05f,  0.05f, 1.0f, 1.0f
     };
+
     glGenVertexArrays(1, &crosshairVAO);
     glGenBuffers(1, &crosshairVBO);
     glBindVertexArray(crosshairVAO);
@@ -128,36 +125,30 @@ void initCrosshair() {
     }
     stbi_image_free(data);
 
-    crosshairShader = new Shader("mirino.vs", "mirino.fs");
-    if (!crosshairShader->ID) {
-        std::cerr << "[ERRORE] Shader del mirino non compilato correttamente!" << std::endl;
-        return;
-    }
+    crosshairShader = new Shader("crosshair.vs", "crosshair.fs");
 }
 
-void drawCrosshair(GLFWwindow* window) {
-    
+void drawCrosshair() {
     crosshairShader->use();
     glBindVertexArray(crosshairVAO);
     glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     crosshairShader->setInt("crosshairTexture", 0);
-    crosshairShader->setFloat("time", glfwGetTime());
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, crosshairTexture);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glEnable(GL_DEPTH_TEST);
     glBindVertexArray(0);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    
+
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && player.haBonusSparo()) {
         player.gestisciSparo(window,proiettileNavicella);
+        //player.inizializzaProiettileSpeciale(proiettileSpeciale, 1);
     }
 }
 
@@ -179,7 +170,7 @@ int main() {
     SCR_WIDTH = mode->width;
     SCR_HEIGHT = mode->height;
 
-
+    initCrosshair();
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -238,8 +229,6 @@ int main() {
 
     glEnable(GL_DEPTH_TEST); 
 
-
-
     Model modelNavicella("../src/models/navicella/navicella.obj");
     modelAlieno1 = Model("../src/models/alieni/alieno1/alieno1.obj");
     Shader playerShader("player.vs", "player.fs");
@@ -289,39 +278,20 @@ int main() {
     background->addBackground("../src/images/scenario1.png");
     background->addBackground("../src/images/scenario2.png");
     background->addBackground("../src/images/scenario3.png");
-    initCrosshair();
 
     while (!glfwWindowShouldClose(window)) {
 
         glm::mat4 view;
-        
-        if (faseBoss && transizioneBossAttiva) {
-            timerTransizioneBoss += deltaTime;
-            float t = glm::clamp(timerTransizioneBoss / tempoTransizioneBoss, 0.0f, 1.0f);
-
-            // camera iniziale (prima del boss)
-            glm::vec3 eyeStart = glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f);
-            glm::vec3 centerStart = glm::vec3(0.0f, -1.5f, -player.getPos().z - 6.0f);
-
-            // camera finale (fase boss)
-            glm::vec3 eyeEnd = player.getPos() + glm::vec3(0.0f, 0.5f, 0.0f);
-            glm::vec3 centerEnd = eyeEnd + glm::vec3(0.0f, 0.0f, -1.0f);
-
-            glm::vec3 eye = glm::mix(eyeStart, eyeEnd, t);
-            glm::vec3 center = glm::mix(centerStart, centerEnd, t);
-
-            view = glm::lookAt(eye, center, glm::vec3(0, 1, 0));
-
-            if (t >= 1.0f) transizioneBossAttiva = false;
-        }
-        else if (faseBoss) {
-            glm::vec3 eye = player.getPos() + glm::vec3(0.0f, 0.5f, 0.0f);
-            glm::vec3 center = eye + glm::vec3(0.0f, 0.0f, -1.0f);
+        if (faseBoss) {
+            //view = glm::lookAt(glm::vec3(0.0f, 3.0f, 5.0f), glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(0, 1, 0));
+            glm::vec3 eye = player.getPos() + glm::vec3(0.0f, 0.5f, 0.0f);   // posizione testa
+            glm::vec3 center = eye + glm::vec3(0.0f, 0.0f, -1.0f);            // guarda avanti
             view = glm::lookAt(eye, center, glm::vec3(0, 1, 0));
         }
         else {
             view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
         }
+
 
         glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
 
@@ -331,10 +301,6 @@ int main() {
 
         tempoGioco += deltaTime;
         if (!faseBoss && tempoGioco >= tempoBoss) {
-            faseBoss = true;
-            transizioneBossAttiva = true;
-            timerTransizioneBoss = 0.0f;
-
             faseBoss = true;
             boss.activate();
             player.setPos(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -413,7 +379,7 @@ int main() {
             boss.checkIsHitted(proiettileSpeciale, esplosione);
             boss.checkCollisionPlayer(player, esplosione, giocoTerminato);
             boss.render(player, esplosione, view, projection, healthBarShader);
-            drawCrosshair(window);
+            drawCrosshair();
         }
         if (giocoTerminato || boss.isDead()) {
             std::cout << "[GAME OVER]" << std::endl;
