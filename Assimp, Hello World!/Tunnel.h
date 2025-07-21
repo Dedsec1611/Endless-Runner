@@ -6,6 +6,8 @@
 #include "shader_m.h"
 #include "nemici.h"
 #include "Player.h"
+#include "GestoreCollisioni.h"
+
 
 struct TunnelSegment {
     glm::vec3 position;
@@ -88,7 +90,7 @@ public:
         }
     }
 
-    void draw(Shader& shader, Proiettile& proiettile, Proiettile& proiettileSpeciale, Player& player, Esplosione& esplosione, bool& giocoTermianto, bool& nemiciAttivi) {
+    void draw(Shader& shader, Proiettile& proiettile, Proiettile& proiettileSpeciale, Player& player, Esplosione& esplosione, bool& giocoTerminato, bool& nemiciAttivi) {
         shader.use();
 
         glActiveTexture(GL_TEXTURE0);
@@ -106,7 +108,7 @@ public:
             seg.nemici.render(player);
             seg.nemici.checkCollision(proiettile, esplosione, player);
             seg.nemici.checkCollision(proiettileSpeciale, esplosione, player);
-            seg.nemici.checkCollisionWithPlayer(player, proiettile, giocoTermianto, nemiciAttivi);
+            GestoreCollisioni::gestisciCollisioneConNemici(seg.nemici, player, nemiciAttivi, giocoTerminato);
         }
         glBindVertexArray(0);
     }
