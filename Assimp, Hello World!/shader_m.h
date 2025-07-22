@@ -59,6 +59,8 @@ public:
     }
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
+    std::cout << "[DEBUG] Compilazione vertex shader da file: " << vertexPath << std::endl;
+	std::cout << "[DEBUG] Compilazione fragment shader da file: " << fragmentPath << std::endl;
     // 2. compile shaders
     unsigned int vertex, fragment;
     // vertex shader

@@ -172,9 +172,14 @@
     <None Include="background.vs" />
     <None Include="basic.fs" />
     <None Include="basic.vs" />
+    <None Include="bonus.fs" />
+    <None Include="bonus.vs" />
+    <None Include="bonus_outiline.vs" />
+    <None Include="bonus_outline.fs" />
     <None Include="enemy_shader.fs" />
     <None Include="enemy_shader.vs" />
     <None Include="esplosione.fs" />
+    <None Include="esplosione.vs" />
     <None Include="health_bar.fs" />
     <None Include="health_bar.vs" />
     <None Include="mirino.fs" />

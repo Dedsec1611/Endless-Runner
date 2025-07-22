@@ -15,6 +15,9 @@
 #include <cmath>
 #include <stack>
 #include <vector>
+#include <thread>
+#include <chrono>
+
 
 #pragma comment(lib, "irrKlang.lib") 
 
@@ -41,6 +44,8 @@ unsigned int SCR_WIDTH;
 unsigned int SCR_HEIGHT;
 
 bool giocoTerminato = false;
+bool vittoria = false;
+
 
 float tempoAvvioNemici = 5.0f; 
 float timerNemici = 0.0f;
@@ -49,6 +54,8 @@ bool nemiciAttivi = false;
 Tunnel tunnel;
 Player player;
 Background* background;
+Shader* backgroundShader = nullptr;
+
 
 Shader* shaderProgram;
 Shader alienoShader;
@@ -168,96 +175,125 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
 
 int main() {
     glfwInit();
+
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Endless Runner", monitor, NULL);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+    SCR_WIDTH = mode->width;
+    SCR_HEIGHT = mode->height;
+
+    // === Creazione dei modelli e shader (una sola volta) ===
+    Model modelNavicella("../src/models/navicella/navicella.obj");
+    modelAlieno1 = Model("../src/models/alieni/alieno1/alieno1.obj");
+    modelCubo = Model("../src/models/cubo.obj");
+    modelBonus = Model("../src/models/armabonus/Flamethrower without armor.obj");
+    modelBoss = Model("../src/models/enemy/enemy.obj");
+
+    Shader playerShader("player.vs", "player.fs");
+    alienoShader = Shader("alieno.vs", "alieno.fs");
+    proiettileShader = Shader("proiettile.vs", "proiettile.fs");
+    bossBarShader = Shader("barriera.vs", "barriera.fs");
+    healthBarShader = Shader("health_bar.vs", "health_bar.fs");
+    Shader bossAuraShader("aura.vs", "aura.fs");
+    barrieraShader = Shader("barriera.vs", "barriera.fs");
+    Shader shaderBlur("blur.vs", "blur.fs");
+    Shader shaderBloomFinal("bloom_final.vs", "bloom_final.fs");
+    Shader esplosioneShader("esplosione.vs", "esplosione.fs");
+    Shader bonusShader("bonus.vs", "bonus.fs");
+    Shader bonusOutlineShader("bonus_outline.vs", "bonus_outline.fs");
+
+    shaderProgram = new Shader("basic.vs", "basic.fs");
+    if (!shaderProgram || !shaderProgram->ID) {
+        std::cerr << "[ERRORE] Shader base non valido." << std::endl;
+        return -1;
+    }
+
+    backgroundShader = new Shader("background.vs", "background.fs");
+    if (!backgroundShader || !backgroundShader->ID) {
+        std::cerr << "[ERRORE] Shader background non valido." << std::endl;
+        return -1;
+    }
+
+    background = new Background(backgroundShader);
+
+    // === Configura oggetti che usano i modelli/shader appena caricati ===
+    player.setShader(playerShader);
+    player.setModel(modelNavicella);
+
+    boss.setModel(modelBoss);
+    boss.setShader(alienoShader);
+    boss.setProiettileShader(proiettileShader);
+    boss.setProiettileModel(modelCubo);
+    boss.initHealthBar();
+    boss.setAuraShader(bossAuraShader);
+
+    proiettileNavicella.setShader(proiettileShader);
+    proiettileNavicella.setModel(modelCubo);
+    proiettileSpeciale.setShader(proiettileShader);
+    proiettileBoss.setShader(proiettileShader);
+    proiettileBoss.setModel(modelCubo);
+    proiettileBoss.setSpeed(5.0f);
+
+    esplosione.setShader(esplosioneShader);
+    esplosione.setModel(modelCubo);
+    esplosione.setSuono(&suono);
+
+    tunnel.modelNemico = modelAlieno1;
+    tunnel.nemicoShader = &alienoShader;
+    tunnel.modelBonus = modelBonus;
+    tunnel.bonusShader = &bonusShader;
+    tunnel.bonusOutlineShader = &bonusOutlineShader;
+
+    // === Ciclo principale ===
     bool restartGame = true;
+    GLFWwindow* window = nullptr;
+
     while (restartGame) {
         restartGame = false;
 
-        SCR_WIDTH = mode->width;
-        SCR_HEIGHT = mode->height;
+        // Creazione finestra
+        if (window) glfwDestroyWindow(window);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-
-        if (window == NULL) {
-            std::cout << "Failed to create GLFW window" << std::endl;
+        window = glfwCreateWindow(1280, 720, "Endless Runner", NULL, NULL);
+        if (!window) {
+            std::cerr << "[ERRORE] glfwCreateWindow ha fallito." << std::endl;
             glfwTerminate();
             return -1;
         }
+
         glfwMakeContextCurrent(window);
         glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-            std::cout << "Failed to initialize GLAD" << std::endl;
+            std::cerr << "Errore nell'inizializzazione di GLAD" << std::endl;
+            return -1;
+        }
+
+        // Shader dinamico
+        Shader* starShader = new Shader("star.vs", "star.fs");
+        if (!starShader || !starShader->ID) {
+            std::cerr << "[ERRORE] Shader stelle non valido." << std::endl;
             return -1;
         }
 
         glEnable(GL_DEPTH_TEST);
         initRenderText(SCR_WIDTH, SCR_HEIGHT);
+
         Starfield starfield(200, SCR_WIDTH, SCR_HEIGHT);
         BossStarfield bossStarfield(200, SCR_WIDTH, SCR_HEIGHT);
 
-        Shader* starShader = new Shader("star.vs", "star.fs");
-
-        Model modelNavicella("../src/models/navicella/navicella.obj");
-        modelAlieno1 = Model("../src/models/alieni/alieno1/alieno1.obj");
-        Shader playerShader("player.vs", "player.fs");
-        alienoShader = Shader("alieno.vs", "alieno.fs");
-        shaderProgram = new Shader("basic.vs", "basic.fs");
-        Shader* backgroundShader = new Shader("background.vs", "background.fs");
-        proiettileShader = Shader("proiettile.vs", "proiettile.fs");
-        modelCubo = Model("../src/models/cubo.obj");
-        modelBonus = modelCubo;
-        Shader enemyShader("enemy_shader.vs", "enemy_shader.fs");
-        modelBoss = Model("../src/models/enemy/enemy.obj");
-        bossBarShader = Shader("barriera.vs", "barriera.fs");
-        healthBarShader = Shader("health_bar.vs", "health_bar.fs");
-
-        boss.setModel(modelBoss);
-        boss.setPos(player.getPos() + glm::vec3(boss.getPos().x, boss.getPos().y, -10.0f));
-        boss.setShader(alienoShader);
-        boss.setProiettileShader(proiettileShader);
-        boss.setProiettileModel(modelCubo);
-        boss.initHealthBar();
-
-        player.setShader(playerShader);
-        player.setModel(modelNavicella);
-
-        proiettileNavicella.setShader(proiettileShader);
-        proiettileNavicella.setModel(modelCubo);
-        proiettileSpeciale.setShader(proiettileShader);
-
-        proiettileBoss.setShader(proiettileShader);
-        proiettileBoss.setModel(modelCubo);
-        proiettileBoss.setSpeed(5.0f);
-        Shader bossAuraShader("aura.vs", "aura.fs");
-        boss.setAuraShader(bossAuraShader);
-        barrieraShader = Shader("barriera.vs", "barriera.fs");
-
-        /* esplosione.setShader(barrieraShader);
-         esplosione.setModel(modelCubo);
-         esplosione.setSuono(&suono);*/
-
-
-        Shader shaderBlur("blur.vs", "blur.fs");
-        Shader shaderBloomFinal("bloom_final.vs", "bloom_final.fs");
-        Shader esplosioneShader("esplosione.vs", "esplosione.fs");
-
-        esplosione.setShader(esplosioneShader);
-
-        tunnel.modelNemico = modelAlieno1;
-        tunnel.nemicoShader = &alienoShader;
-        tunnel.modelBonus = modelBonus;
         tunnel.init();
 
-        background = new Background(backgroundShader);
-        background->addBackground("../src/images/scenario1.png");
-        background->addBackground("../src/images/scenario2.png");
-        background->addBackground("../src/images/scenario3.png");
+        if (background) {
+            background->cleanup();
+            background->addBackground("../src/images/scenario1.png");
+            background->addBackground("../src/images/scenario2.png");
+            background->addBackground("../src/images/scenario3.png");
+        }
+
         initCrosshair();
 
         bool startGame = false;
@@ -310,6 +346,7 @@ int main() {
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 RenderText("HAI PERSO", SCR_WIDTH / 2 - 100, SCR_HEIGHT / 2 + 20, 1.0f, glm::vec3(1.0f, 0.0f, 0.0f));
                 RenderText("PREMI SPAZIO PER CONTINUARE", SCR_WIDTH / 2 - 250, SCR_HEIGHT / 2 - 40, 0.5f, glm::vec3(1.0f));
+                std::this_thread::sleep_for(std::chrono::milliseconds(16)); // ~60 FPS
 
                 glfwSwapBuffers(window);
                 glfwPollEvents();
@@ -437,9 +474,10 @@ int main() {
 
             if (!faseBoss) {
                 player.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f * deltaTime));
+                bonusShader.setFloat("time", glfwGetTime());
 
                 tunnel.update(deltaTime, player.getPos().z);
-                tunnel.draw(*shaderProgram, proiettileNavicella, proiettileSpeciale, player, esplosione, giocoTerminato, nemiciAttivi);
+                tunnel.draw(*shaderProgram, view, projection, proiettileNavicella, proiettileSpeciale, player, esplosione, giocoTerminato, nemiciAttivi);
 
                 glDisable(GL_DEPTH_TEST);
 
@@ -476,9 +514,15 @@ int main() {
                 glEnable(GL_DEPTH_TEST);
             }
             
-            if (player.isGameOver() || boss.isDead()) {
+            if (player.isGameOver()) {
                 giocoTerminato = true;
+                vittoria = false;
             }
+            if (boss.isDead()) {
+                giocoTerminato = true;
+                vittoria = true;
+            }
+
 
 
             glfwSwapBuffers(window);
@@ -488,39 +532,95 @@ int main() {
             bool inGameOver = true;
             while (inGameOver && !glfwWindowShouldClose(window)) {
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                RenderText("HAI PERSO", SCR_WIDTH / 2 - 100, SCR_HEIGHT / 2 + 20, 1.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+
+                if (vittoria) {
+                    RenderText("HAI VINTO!", SCR_WIDTH / 2 - 100, SCR_HEIGHT / 2 + 20, 1.0f, glm::vec3(0.3f, 1.0f, 0.3f));
+                }
+                else {
+                    RenderText("HAI PERSO", SCR_WIDTH / 2 - 100, SCR_HEIGHT / 2 + 20, 1.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+                }
+
                 RenderText("PREMI SPAZIO PER TORNARE AL MENU", SCR_WIDTH / 2 - 250, SCR_HEIGHT / 2 - 40, 0.5f, glm::vec3(1.0f));
+
                 glfwSwapBuffers(window);
                 glfwPollEvents();
+                std::this_thread::sleep_for(std::chrono::milliseconds(16));
 
                 if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
                     restartGame = true;
                     inGameOver = false;
                 }
             }
-
+        
             if (restartGame) {
-                // resetta lo stato per tornare al menu
                 giocoTerminato = false;
+                vittoria = false;
                 faseBoss = false;
                 tempoGioco = 0.0f;
                 timerNemici = 0.0f;
                 nemiciAttivi = false;
-                startGame = false;
-                player = Player();        // ricrea il player
-                boss = Boss();            // ricrea il boss
-                esplosione = Esplosione(); // resetta esplosioni
-                continue;  // torna a inizio del ciclo esterno
+
+                player = Player();
+                boss = Boss();
+                esplosione = Esplosione();
+
+                // Riassociazione modelli/shader esistenti
+                player.setShader(playerShader);
+                player.setModel(modelNavicella);
+
+                boss.setModel(modelBoss);
+                boss.setShader(alienoShader);
+                boss.setProiettileShader(proiettileShader);
+                boss.setProiettileModel(modelCubo);
+                boss.initHealthBar();
+                boss.setAuraShader(bossAuraShader);
+
+                proiettileNavicella.setShader(proiettileShader);
+                proiettileNavicella.setModel(modelCubo);
+                proiettileSpeciale.setShader(proiettileShader);
+                proiettileBoss.setShader(proiettileShader);
+                proiettileBoss.setModel(modelCubo);
+                proiettileBoss.setSpeed(5.0f);
+
+                esplosione.setShader(esplosioneShader);
+                esplosione.setModel(modelCubo);
+                esplosione.setSuono(&suono);
+
+                // Reinizializza tunnel e background
+                tunnel.cleanup();
+                tunnel.modelNemico = modelAlieno1;
+                tunnel.nemicoShader = &alienoShader;
+                tunnel.modelBonus = modelBonus;
+                tunnel.bonusShader = &bonusShader;
+                tunnel.bonusOutlineShader = &bonusOutlineShader;
+                tunnel.init();
+
+                if (background) {
+                    background->cleanup();
+                    background->addBackground("../src/images/scenario1.png");
+                    background->addBackground("../src/images/scenario2.png");
+                    background->addBackground("../src/images/scenario3.png");
+                }
+
+               
+
+                continue;
             }
+            continue; // torna all’inizio del ciclo principale
+            
+
         }
 
 
 
-        tunnel.cleanup();
-        background->cleanup();
-        delete shaderProgram;
-        delete backgroundShader;
-        delete background;
+        if (&tunnel != nullptr) {
+            tunnel.cleanup();
+        }
+
+        if (background) {
+            background->cleanup();
+        }
+       
     }
     glfwTerminate();
     return 0;

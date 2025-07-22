@@ -147,6 +147,21 @@
     <None Include="aura.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="esplosione.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="bonus.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="bonus.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="bonus_outiline.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="bonus_outline.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

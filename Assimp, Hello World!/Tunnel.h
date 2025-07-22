@@ -31,6 +31,10 @@ public:
     Model modelNemico;
     Model modelBonus;
     Shader* nemicoShader;
+    Shader* bonusShader = nullptr;
+    Shader* bonusOutlineShader = nullptr;
+
+
 	
     Tunnel() {
         segmentLength = 20.0f;
@@ -44,6 +48,9 @@ public:
             segment.length = segmentLength;
             segment.nemici.init(segment.position, modelNemico, nemicoShader);
             segment.nemici.setBonusModel(&modelBonus);
+            segment.nemici.setBonusShader(bonusShader);
+            segment.nemici.setBonusOutlineShader(bonusOutlineShader);
+
             segments.push_back(segment);
         }
 
@@ -88,9 +95,7 @@ public:
                 seg.nemici.setBonusModel(&modelBonus);
             }
         }
-    }
-
-    void draw(Shader& shader, Proiettile& proiettile, Proiettile& proiettileSpeciale, Player& player, Esplosione& esplosione, bool& giocoTerminato, bool& nemiciAttivi) {
+    }void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, Proiettile& proiettile, Proiettile& proiettileSpeciale, Player& player, Esplosione& esplosione, bool& giocoTerminato, bool& nemiciAttivi){
         shader.use();
 
         glActiveTexture(GL_TEXTURE0);
@@ -105,7 +110,7 @@ public:
             // shader.setMat4("model", model);
             // glDrawArrays(GL_TRIANGLES, 0, 6);
 
-            seg.nemici.render(player);
+            seg.nemici.render(player, view, projection);
             seg.nemici.checkCollision(proiettile, esplosione, player);
             seg.nemici.checkCollision(proiettileSpeciale, esplosione, player);
             GestoreCollisioni::gestisciCollisioneConNemici(seg.nemici, player, nemiciAttivi, giocoTerminato);

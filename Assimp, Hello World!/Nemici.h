@@ -30,6 +30,9 @@ private:
     Model model;
     Shader* shader;
     Model* bonusModel = nullptr;
+    Shader* bonusShader = nullptr;
+    Shader* bonusOutlineShader = nullptr;
+
 
     int minNemici = 3;
     int maxNemici = 5;
@@ -103,27 +106,61 @@ public:
         basePosition = newPos;
     }
 
-    void render(Player& player) {
-        shader->use();
+    void render(Player& player, const glm::mat4& view, const glm::mat4& projection)
+    {
         for (auto& n : nemici) {
             if (!n.vivo) {
                 n.esplosione.render();
                 continue;
             }
+
             if (n.isBonus && player.haBonusSparo()) continue;
+
+            Shader* currentShader = (n.isBonus && bonusShader) ? bonusShader : shader;
+            currentShader->use();
+            currentShader->setMat4("view", view);
+            currentShader->setMat4("projection", projection);
 
             glm::mat4 modelMatrix = glm::mat4(1.0f);
             modelMatrix = glm::translate(modelMatrix, n.position);
-            modelMatrix = glm::scale(modelMatrix, glm::vec3(0.3f));
-            shader->setMat4("model", modelMatrix);
+            modelMatrix = glm::scale(modelMatrix, n.isBonus ? glm::vec3(0.01f) : glm::vec3(0.3f));
+            currentShader->setMat4("model", modelMatrix);
+
             if (n.isBonus && bonusModel) {
-                bonusModel->Draw(*shader);
+                // 1. Disegna contorno (outline)
+                if (bonusOutlineShader) {
+                    bonusOutlineShader->use();
+                    bonusOutlineShader->setMat4("view", view);
+                    bonusOutlineShader->setMat4("projection", projection);
+                    bonusOutlineShader->setMat4("model", modelMatrix);
+                    glEnable(GL_CULL_FACE);
+                    glCullFace(GL_FRONT); // disegna solo il bordo esterno
+                    glEnable(GL_BLEND);
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+                    bonusModel->Draw(*bonusOutlineShader);
+                    glDisable(GL_BLEND);
+                    glCullFace(GL_BACK);
+                }
+
+                // 2. Disegna modello normale con glow
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+                glActiveTexture(GL_TEXTURE0);
+                bonusShader->setInt("texture_diffuse1", 0);
+                bonusShader->setFloat("time", glfwGetTime());
+                bonusModel->Draw(*bonusShader);
+                glDisable(GL_BLEND);
             }
+
+
+
             else {
-                model.Draw(*shader);
+                model.Draw(*currentShader);
             }
+
         }
     }
+
 
     void checkCollisionWithPlayer(Player& player, Proiettile& proiettile, bool& giocoTerminato, bool& nemiciAttivi) {
         for (auto& n : nemici) {
@@ -178,5 +215,13 @@ public:
         return true;
     }
     std::vector<Nemico>& getNemiciRiferimento() { return nemici; }
+  
+    void setBonusShader(Shader* shader) {
+        bonusShader = shader;
+    }
+    void setBonusOutlineShader(Shader* shader) {
+        bonusOutlineShader = shader;
+    }
+
 
 };
