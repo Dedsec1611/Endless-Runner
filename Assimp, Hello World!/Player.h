@@ -191,6 +191,7 @@ public:
     void inizializzaProiettile(Proiettile& p) {
         glm::vec3 direzione = glm::vec3(0.0f, 0.0f, -1.0f);
         glm::vec3 posizioneSparo = posizione + direzione * 2.0f;
+        std::cout << "[SPARO] Creo proiettile in " << posizioneSparo.x << ", " << posizioneSparo.y << ", " << posizioneSparo.z << std::endl;
         p.inizializzaPos(posizioneSparo, true);
         p.inizializzaDir(direzione);
     }
@@ -200,12 +201,15 @@ public:
         float tempoAttuale = glfwGetTime();
 
         if (spazioPremutoOra && !spazioPremutoPrima && puoSparare && (tempoAttuale - tempoUltimoSparo >= intervalloSparo)) {
+            std::cout << "[GESTIONE SPARO] Condizione valida per sparare\n";
             inizializzaProiettile(proiettile);
             tempoUltimoSparo = tempoAttuale;
         }
 
-        spazioPremutoPrima = false;
+        // aggiorna lo stato per il prossimo frame
+        spazioPremutoPrima = spazioPremutoOra;
     }
+
 
     void inizializzaProiettileSpeciale(Proiettile& p, int livello) {
         p.setIsSpeciale(true);

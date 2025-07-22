@@ -124,8 +124,6 @@
     <None Include="player.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="star.fs" />
-    <None Include="star.vs" />
     <None Include="mirino.vs">
       <Filter>Resource Files</Filter>
     </None>
@@ -160,6 +158,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="bonus_outline.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="star.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="star.vs">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

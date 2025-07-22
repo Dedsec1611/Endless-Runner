@@ -147,6 +147,10 @@ public:
     void inizializzaDir(glm::vec3 newDir) {
         vectorDir.push_back(newDir);
     }
+    void aggiorna(float deltaTime) {
+        translateSpeed = speed * deltaTime;
+    }
+
 
     void render(glm::vec3 color) {
 

@@ -175,10 +175,16 @@ public:
                 }
                 
                 else {
-                    if (!nemiciAttivi) return;
+                    if (!nemiciAttivi || player.isInvincibile()) return;
                     std::cout << "[COLLISIONE] Player ha impattato un nemico (non bonus)!" << std::endl;
-                    giocoTerminato = true;
+                    player.subisciDanno();
+                    player.setIsInvincibile(true);
+                    player.aggiornaInvincibilita(0.0f); // opzionale per attivare subito
+                    if (player.isGameOver()) {
+                        giocoTerminato = true;
+                    }
                 }
+
                 n.vivo = false;
                 n.esplosione.inizializza(n.position, 1);
                 break;

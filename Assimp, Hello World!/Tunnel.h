@@ -113,10 +113,17 @@ public:
             seg.nemici.render(player, view, projection);
             seg.nemici.checkCollision(proiettile, esplosione, player);
             seg.nemici.checkCollision(proiettileSpeciale, esplosione, player);
+            seg.nemici.checkCollisionWithPlayer(player, proiettile, giocoTerminato, nemiciAttivi);
+
             GestoreCollisioni::gestisciCollisioneConNemici(seg.nemici, player, nemiciAttivi, giocoTerminato);
         }
         glBindVertexArray(0);
     }
+    Nemici& getNemici() {
+        // Ritorna i nemici del primo segmento (quello più vicino al player)
+        return segments[0].nemici;
+    }
+
 
     void cleanup() {
         glDeleteVertexArrays(1, &cubeVAO);
