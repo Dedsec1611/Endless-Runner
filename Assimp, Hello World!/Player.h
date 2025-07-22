@@ -206,8 +206,7 @@ public:
             tempoUltimoSparo = tempoAttuale;
         }
 
-        // aggiorna lo stato per il prossimo frame
-        spazioPremutoPrima = spazioPremutoOra;
+        spazioPremutoPrima = false;
     }
 
 
