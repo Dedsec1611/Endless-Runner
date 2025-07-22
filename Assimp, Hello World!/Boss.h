@@ -8,9 +8,7 @@
 #include "shader_m.h"
 #include "model.h"
 #include "proiettile.h"
-#include "navicella.h"
 #include "esplosione.h"
-#include "barriera.h"
 #include "Player.h"
 
 class Boss {
@@ -232,7 +230,7 @@ public:
             float proiettile_z = proiettile.getVecPos()[i].z;
 
             glm::vec2 punto = glm::vec2(proiettile_x, proiettile_z - (proiettile.getLunghezza() / 2));
-            glm::vec2 centro = glm::vec2(pos.x, pos.z - 1.5f); // centrato un po' più avanti se serve
+            glm::vec2 centro = glm::vec2(pos.x, pos.z - 1.5f); // centrato un po' piï¿½ avanti se serve
 
             float dx = punto.x - centro.x;
             float dz = punto.y - centro.y;
@@ -265,7 +263,7 @@ public:
             glm::vec3 posBullet = proiettili[i].getVecPos()[0];
             float distanza = glm::distance(glm::vec2(posBullet.x, posBullet.z), glm::vec2(player.getPos().x, player.getPos().z));
             if (distanza < 0.5f) {
-                std::cout << "[BOSS] Il player è stato colpito!" << std::endl;
+                std::cout << "[BOSS] Il player ï¿½ stato colpito!" << std::endl;
                 player.subisciDanno();
                 if (player.isGameOver()) {
                     giocoTerminato = true;

@@ -46,12 +46,6 @@
     <None Include="bordo.vs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="freccia.vs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="freccia.fs">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="alieno.vs">
       <Filter>Resource Files</Filter>
     </None>
@@ -74,30 +68,6 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="navicella.vs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ufoRetro.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ufoRetro.vs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="roccia.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="roccia.vs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pianeta.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pianeta.vs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="stencilTesting.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="stencilTesting.vs">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="health_bar.vs">
@@ -194,28 +164,7 @@
     <ClInclude Include="render_text.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="alieno.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="navicella.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="proiettile.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ufo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="barriera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="roccia.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pianeta.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="esplosione.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="suono.h">

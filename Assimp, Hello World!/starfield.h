@@ -30,6 +30,8 @@ protected:
     }
 
 public:
+    Starfield() : Starfield(200, 800, 600) {} 
+
     Starfield(int count, int width, int height) {
         screenWidth = width;
         screenHeight = height;
@@ -138,6 +140,8 @@ public:
 
 class BossStarfield : public Starfield {
 public:
+    BossStarfield() : BossStarfield(200, 800, 600) {} 
+
     BossStarfield(int count, int width, int height) : Starfield(count, width, height) {}
 
 protected:

@@ -20,13 +20,7 @@
 
 #pragma comment(lib, "irrKlang.lib")
 
-#include "alieno.h"
-#include "navicella.h"
 #include "proiettile.h"
-#include "ufo.h"
-#include "barriera.h"
-#include "roccia.h"
-#include "pianeta.h"
 #include "esplosione.h"
 #include "suono.h"
 #include "Boss.h"
@@ -65,14 +59,10 @@ Shader alienoShader;
 Model modelAlieno1;
 
 Proiettile proiettileNavicella;
-//Proiettile proiettileSpeciale;
 Shader proiettileShader;
 Proiettile proiettileBoss;
 
 Esplosione esplosione;
-Shader barrieraShader;
-
-Barriera barriera;
 
 Model modelCubo;
 Model modelBonus;
@@ -356,8 +346,6 @@ int main() {
         nemiciAttivi = false;
         player = Player();
         boss = Boss();
-        esplosione = Esplosione();
-
         gameLoop(window);
     }
 
@@ -394,7 +382,6 @@ void gameLoop(GLFWwindow* window) {
     proiettileShader = Shader("proiettile.vs", "proiettile.fs");
     bossBarShader = Shader("barriera.vs", "barriera.fs");
     healthBarShader = Shader("health_bar.vs", "health_bar.fs");
-    barrieraShader = Shader("barriera.vs", "barriera.fs");
 
     shaderProgram = new Shader("basic.vs", "basic.fs");
     backgroundShader = new Shader("background.vs", "background.fs");
@@ -436,10 +423,6 @@ void gameLoop(GLFWwindow* window) {
     proiettileBoss.setShader(proiettileShader);
     proiettileBoss.setModel(modelCubo);
     proiettileBoss.setSpeed(5.0f);
-
-    esplosione.setShader(esplosioneShader);
-    esplosione.setModel(modelCubo);
-    esplosione.setSuono(&suono);
 
     initCrosshair();
 
@@ -532,19 +515,12 @@ void gameLoop(GLFWwindow* window) {
         healthBarShader.setMat4("projection", projection);
 
         proiettileNavicella.setTranslateSpeed(proiettileNavicella.getSpeed() * deltaTime);
-        //proiettileSpeciale.setTranslateSpeed(proiettileSpeciale.getSpeed() * deltaTime);
         proiettileBoss.setTranslateSpeed(proiettileBoss.getSpeed() * deltaTime);
         proiettileShader.use();
         proiettileShader.setMat4("view", view);
         proiettileShader.setMat4("projection", projection);
 
         proiettileNavicella.render(glm::vec3(1.0f));
-        //proiettileSpeciale.render(glm::vec3(1.0f, 0.0f, 0.0f));
-
-        esplosione.render();
-        esplosione.setTranslateSpeed(esplosione.getSpeed() * deltaTime);
-        esplosione.setModel(modelCubo);
-        esplosione.setSuono(&suono);
 
         shaderProgram->use();
         shaderProgram->setVec3("objectColor", glm::vec3(0.2f, 0.2f, 0.2f));

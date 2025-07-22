@@ -15,7 +15,6 @@
 #include "model.h"
 #include "proiettile.h"
 #include "navicella.h"
-#include "barriera.h"
 #include "esplosione.h"
 #include "suono.h"
 
@@ -261,7 +260,7 @@ public:
         {
             for (int j = 0; j < colonneAlieni; j++)
             {
-                map[i][j] = righeAlieni - i;  // Inverte l’ordine: prima riga = 5, ultima = 1
+                map[i][j] = righeAlieni - i;  // Inverte lï¿½ordine: prima riga = 5, ultima = 1
             }
         }
 

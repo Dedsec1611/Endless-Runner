@@ -9,7 +9,6 @@
 #include "shader_m.h"
 #include "model.h"
 #include "proiettile.h"
-#include "navicella.h"
 #include "esplosione.h"
 
 class Nemici {

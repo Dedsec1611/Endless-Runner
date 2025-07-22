@@ -17,8 +17,6 @@
 
 #include "model.h"
 #include "proiettile.h"
-#include "navicella.h"
-#include "barriera.h"
 #include "suono.h"
 
 const float M_PI = 3.14159265358979323846;

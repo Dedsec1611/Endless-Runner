@@ -188,8 +188,6 @@
     <None Include="player.vs" />
     <None Include="star.fs" />
     <None Include="star.vs" />
-    <None Include="stencilTesting.fs" />
-    <None Include="stencilTesting.vs" />
     <None Include="alieno.fs" />
     <None Include="alieno.vs" />
     <None Include="barriera.fs" />
@@ -202,50 +200,35 @@
     <None Include="blur.vs" />
     <None Include="bordo.fs" />
     <None Include="bordo.vs" />
-    <None Include="freccia.fs" />
     <None Include="navicella.fs" />
     <None Include="navicella.vs" />
     <None Include="packages.config" />
-    <None Include="freccia.vs" />
-    <None Include="pianeta.fs" />
-    <None Include="pianeta.vs" />
     <None Include="proiettile.fs" />
     <None Include="proiettile.vs" />
-    <None Include="roccia.fs" />
-    <None Include="roccia.vs" />
     <None Include="text.fs" />
     <None Include="text.vs" />
-    <None Include="ufoRetro.fs" />
-    <None Include="ufoRetro.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="alieno.h" />
     <ClInclude Include="Background.h" />
-    <ClInclude Include="barriera.h" />
     <ClInclude Include="Boss.h" />
     <ClInclude Include="camera.h" />
-    <ClInclude Include="esplosione.h" />
     <ClInclude Include="GestoreCollisioni.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="model.h" />
-    <ClInclude Include="navicella.h" />
     <ClInclude Include="Nemici.h" />
-    <ClInclude Include="pianeta.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="proiettile.h" />
     <ClInclude Include="render_text.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="roccia.h" />
     <ClInclude Include="shader_m.h" />
     <ClInclude Include="starfield.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="suono.h" />
     <ClInclude Include="Tunnel.h" />
-    <ClInclude Include="ufo.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SpaceInvaders.rc" />
