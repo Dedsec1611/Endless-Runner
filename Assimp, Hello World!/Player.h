@@ -31,7 +31,7 @@ private:
     float dodgeTimer = 0.0f;
     float dodgeDuration = 0.5f;
     float dodgeAngle = 0.0f;
-    int dodgeDirection = 0; // -1 = sinistra, 1 = destra
+    int dodgeDirection = 0; 
     int vite = 2;
     bool invincibile = false;
     float timerInvincibilita = 0.0f;
@@ -233,6 +233,7 @@ public:
     }
 
     bool isInvincibile() const { return invincibile; }
+    void setIsInvincibile(bool isInvincibileAggiorna){ invincibile = isInvincibileAggiorna;}
     int getVite() const { return vite; }
     bool isGameOver() const { return vite <= 0; }
 

@@ -166,6 +166,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="aura.fs" />
+    <None Include="aura.vs" />
     <None Include="background.fs" />
     <None Include="background.vs" />
     <None Include="basic.fs" />

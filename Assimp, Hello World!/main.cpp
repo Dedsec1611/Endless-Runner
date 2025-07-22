@@ -171,14 +171,13 @@ int main() {
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Endless Runner", monitor, NULL);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     bool restartGame = true;
     while (restartGame) {
         restartGame = false;
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        
 
         SCR_WIDTH = mode->width;
         SCR_HEIGHT = mode->height;
@@ -200,49 +199,9 @@ int main() {
         glEnable(GL_DEPTH_TEST);
         initRenderText(SCR_WIDTH, SCR_HEIGHT);
         Starfield starfield(200, SCR_WIDTH, SCR_HEIGHT);
+        BossStarfield bossStarfield(200, SCR_WIDTH, SCR_HEIGHT);
+
         Shader* starShader = new Shader("star.vs", "star.fs");
-
-        bool startGame = false;
-        float transitionTimeMenu = 10.0f;
-        float transitionTimerMenu = 0.0f;
-
-        while (!startGame && !glfwWindowShouldClose(window)) {
-            float currentFrame = glfwGetTime();
-            deltaTime = currentFrame - lastFrame;
-            lastFrame = currentFrame;
-
-            transitionTimerMenu += deltaTime;
-
-            glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glDisable(GL_DEPTH_TEST);
-
-            // Attiva lo shader per stelle con glow
-            starShader->use();
-            starfield.update(deltaTime);
-            starfield.render();
-            //TITOLO
-            RenderText("ENDLESS RUNNER", 200.0f, 500.0f, 0.6f, glm::vec3(0.3f, 1.0f, 1.0f)); //colore azzurro brillante
-
-            // Testo in overlay
-            RenderText("PREMI 1 PER GIOCARE", 100.0f, 400.0f, 0.5f, glm::vec3(1.0f));
-            RenderText("PREMI 2 PER IMPOSTAZIONI", 100.0f, 300.0f, 0.5f, glm::vec3(1.0f));
-
-            glfwSwapBuffers(window);
-            glfwPollEvents();
-
-            if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
-                startGame = true;
-            }
-            else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
-                apriMenuImpostazioni(window, starfield, starShader, suono);
-            }
-
-        }
-
-        glEnable(GL_DEPTH_TEST);
-
-
 
         Model modelNavicella("../src/models/navicella/navicella.obj");
         modelAlieno1 = Model("../src/models/alieni/alieno1/alieno1.obj");
@@ -259,8 +218,8 @@ int main() {
         healthBarShader = Shader("health_bar.vs", "health_bar.fs");
 
         boss.setModel(modelBoss);
-        boss.setPos(glm::vec3(0.0f, 0.0f, -15.0f));  // davanti alla camera
-        boss.setShader(enemyShader);
+        boss.setPos(player.getPos() + glm::vec3(boss.getPos().x, boss.getPos().y, -10.0f));
+        boss.setShader(alienoShader);
         boss.setProiettileShader(proiettileShader);
         boss.setProiettileModel(modelCubo);
         boss.initHealthBar();
@@ -275,7 +234,8 @@ int main() {
         proiettileBoss.setShader(proiettileShader);
         proiettileBoss.setModel(modelCubo);
         proiettileBoss.setSpeed(5.0f);
-
+        Shader bossAuraShader("aura.vs", "aura.fs");
+        boss.setAuraShader(bossAuraShader);
         barrieraShader = Shader("barriera.vs", "barriera.fs");
 
         /* esplosione.setShader(barrieraShader);
@@ -300,6 +260,48 @@ int main() {
         background->addBackground("../src/images/scenario3.png");
         initCrosshair();
 
+        bool startGame = false;
+    
+
+        while (!startGame && !glfwWindowShouldClose(window)) {
+            float currentFrame = glfwGetTime();
+            deltaTime = currentFrame - lastFrame;
+            lastFrame = currentFrame;
+
+
+            glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+
+            // Attiva lo shader per stelle con glow
+            starShader->use();
+            starfield.update(deltaTime);
+            starfield.render();
+
+            //TITOLO
+            RenderText("ENDLESS RUNNER", 200.0f, 500.0f, 0.6f, glm::vec3(0.3f, 1.0f, 1.0f)); //colore azzurro brillante
+
+            // Testo in overlay
+            RenderText("PREMI 1 PER GIOCARE", 100.0f, 400.0f, 0.5f, glm::vec3(1.0f));
+            RenderText("PREMI 2 PER IMPOSTAZIONI", 100.0f, 300.0f, 0.5f, glm::vec3(1.0f));
+
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+                glfwSetWindowShouldClose(window, true);
+
+       
+            if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+                startGame = true;
+            }
+            else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+                apriMenuImpostazioni(window, starfield, starShader, suono);
+            }
+
+        }
+
+        glEnable(GL_DEPTH_TEST);
+
         while (!glfwWindowShouldClose(window)) {
 
             glm::mat4 view;
@@ -322,32 +324,37 @@ int main() {
                 timerTransizioneBoss += deltaTime;
                 float t = glm::clamp(timerTransizioneBoss / tempoTransizioneBoss, 0.0f, 1.0f);
 
-                // camera iniziale (prima del boss)
-                glm::vec3 eyeStart = glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f);
-                glm::vec3 centerStart = glm::vec3(0.0f, -1.5f, -player.getPos().z - 6.0f);
+                // camera normale (inizio)
+                glm::vec3 eyeStart = glm::vec3(0.0f, 1.5f, player.getPos().z + 5.0f);
+                glm::vec3 centerStart = player.getPos();
 
-                // camera finale (fase boss)
-                glm::vec3 eyeEnd = player.getPos() + glm::vec3(0.0f, 0.5f, 0.0f);
-                glm::vec3 centerEnd = eyeEnd + glm::vec3(0.0f, 0.0f, -1.0f);
+                // camera boss (fine)
+                glm::vec3 eyeEnd = player.getPos() + glm::vec3(0.0f, 2.0f, 5.0f);
+                glm::vec3 centerEnd = player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f);
 
                 glm::vec3 eye = glm::mix(eyeStart, eyeEnd, t);
                 glm::vec3 center = glm::mix(centerStart, centerEnd, t);
-
                 view = glm::lookAt(eye, center, glm::vec3(0, 1, 0));
 
                 if (t >= 1.0f) transizioneBossAttiva = false;
             }
+
             else if (faseBoss) {
                 // Posizione della camera dietro e sopra la navicella
-                glm::vec3 eye = player.getPos() + glm::vec3(0.0f, 2.0f, 5.0f);
-                glm::vec3 center = player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f);
-                view = glm::lookAt(eye, center, glm::vec3(0, 1, 0));
+                 glm::vec3 eye = player.getPos() + glm::vec3(0.0f, 2.0f, 5.0f);
+                 glm::vec3 center = player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f);
+                 view = glm::lookAt(eye, center, glm::vec3(0, 1, 0));
+                /* glm::vec3 eye = player.getPos() + glm::vec3(0.0f, 0.5f, 0.0f);
+                 glm::vec3 center = eye + glm::vec3(0.0f, 0.0f, -1.0f);
+                 view = glm::lookAt(eye, center, glm::vec3(0, 1, 0));*/
+                
             }
             else {
                 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
             }
 
             glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
+           // starfield.render(view, projection, starShader);
 
             float currentFrame = glfwGetTime();
             deltaTime = currentFrame - lastFrame;
@@ -362,7 +369,6 @@ int main() {
                 faseBoss = true;
                 boss.activate();
                 player.setPos(glm::vec3(0.0f, 0.0f, 0.0f));
-
             }
 
             timerNemici += deltaTime;
@@ -380,12 +386,7 @@ int main() {
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            glDisable(GL_DEPTH_TEST);
-
-            starShader->use();
-            starfield.update(deltaTime);
-            starfield.render();
-            glEnable(GL_DEPTH_TEST);
+            
 
             playerShader.use();
             playerShader.setMat4("view", view);
@@ -409,8 +410,8 @@ int main() {
             proiettileNavicella.render(glm::vec3(1.0f));
             proiettileSpeciale.render(glm::vec3(1.0f, 0.0f, 0.0f));
 
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            // glEnable(GL_BLEND);
+            // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
             esplosione.render();
@@ -439,16 +440,42 @@ int main() {
 
                 tunnel.update(deltaTime, player.getPos().z);
                 tunnel.draw(*shaderProgram, proiettileNavicella, proiettileSpeciale, player, esplosione, giocoTerminato, nemiciAttivi);
+
+                glDisable(GL_DEPTH_TEST);
+
+                starShader->use();
+                starfield.update(deltaTime);
+                starfield.render(view, projection, starShader);
+                glEnable(GL_DEPTH_TEST);
             }
             else {
-                player.abilitaSparoTemporaneo(50000.0f);
+                glDisable(GL_DEPTH_TEST);
+                starShader->use();
+                bossStarfield.update(deltaTime);
+                bossStarfield.render(view, projection, starShader);
+                glEnable(GL_DEPTH_TEST);
+                alienoShader.use(); 
+                alienoShader.setMat4("view", view);
+                alienoShader.setMat4("projection", projection);
+                player.abilitaSparoTemporaneo(50000000.0f);
+                player.setIsInvincibile(true);
+                player.aggiornaInvincibilita(10.0f);
+
                 boss.aggiorna(deltaTime, glfwGetTime());
                 boss.checkIsHitted(proiettileNavicella, esplosione);
                 boss.checkIsHitted(proiettileSpeciale, esplosione);
                 boss.checkCollisionPlayer(player, esplosione, giocoTerminato);
                 boss.render(player, esplosione, view, projection, healthBarShader);
                 drawCrosshair(window);
+
+                glDisable(GL_DEPTH_TEST);
+
+                starShader->use();
+                starfield.update(deltaTime);
+                starfield.render(view, projection, starShader);
+                glEnable(GL_DEPTH_TEST);
             }
+            
             if (player.isGameOver() || boss.isDead()) {
                 giocoTerminato = true;
             }

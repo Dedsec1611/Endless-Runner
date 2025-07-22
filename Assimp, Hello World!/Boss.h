@@ -15,19 +15,20 @@
 
 class Boss {
 private:
-    glm::vec3 pos = glm::vec3(0.0f, 0.0f, -20.0f);
+    glm::vec3 pos = glm::vec3(0.0f, 0.0f, -40.0f);
     float speed = 2.0f;
     int livello = 1;
     float movementRange = 6.0f;
     float direction = 1.0f;
     float health = 1000.0f;
     float maxHealth = 1000.0f;
-    double lastShotTime = 0.0f;
-    double shootInterval = 1.0f;
+    double lastShotTime = 0.0;
+    double shootInterval = 1.0;
     bool active = false;
     unsigned int healthBarVAO = 0;
     unsigned int healthBarVBO = 0;
     Shader shader;
+    Shader auraShader; // shader per l'aura
     Model model;
     std::vector<Proiettile> proiettili;
 
@@ -40,6 +41,7 @@ public:
     int getLivello() const { return livello; }
 
     void setShader(Shader s) { shader = s; }
+    void setAuraShader(Shader s) { auraShader = s; } // set dello shader aura
     void setModel(Model m) { model = m; }
     void setProiettileShader(Shader s) { proiettileShader = s; }
     void setProiettileModel(Model m) { proiettileModel = m; }
@@ -54,9 +56,9 @@ public:
         active = true;
         proiettili.clear();
 
-        health = 100.0f + 20.0f * (livello - 1);       // +20 HP ogni livello
+        health = 100.0f + 20.0f * (livello - 1);
         maxHealth = health;
-        speed = 2.0f + 0.2f * (livello - 1);           
+        speed = 2.0f + 0.2f * (livello - 1);
         shootInterval = std::max(0.5, 1.5 - 0.1 * (livello - 1));
     }
 
@@ -68,17 +70,14 @@ public:
         std::cout << "[DEBUG] Time: " << currentTime
             << ", lastShot: " << lastShotTime
             << ", intervallo: " << shootInterval << std::endl;
-        // Movimento orizzontale
         pos.x += direction * speed * deltaTime;
         if (fabs(pos.x) > movementRange) direction *= -1.0f;
 
-        // Spara
         if (currentTime - lastShotTime > shootInterval) {
             shoot();
             lastShotTime = currentTime;
         }
 
-        // Aggiorna proiettili
         for (auto& p : proiettili) {
             p.setTranslateSpeed(p.getSpeed() * deltaTime);
         }
@@ -115,29 +114,43 @@ public:
         }
     }
 
-    void  render(Player& player,Esplosione& esplosione,
+    void render(Player& player, Esplosione& esplosione,
         const glm::mat4& view, const glm::mat4& projection, Shader& barShader) {
-            
+
         if (!active) return;
+
+    
 
         // Disegna boss
         shader.use();
-        glm::mat4 modelMat = glm::mat4(1.0f);
-        modelMat = glm::translate(modelMat, pos);
-        modelMat = glm::scale(modelMat, glm::vec3(10.5f));
+        glm::mat4 modelMat = glm::translate(glm::mat4(1.0f), pos);
+        modelMat = glm::translate(modelMat, glm::vec3(0.0f, -5.0f, 0.0f));
+        modelMat = glm::scale(modelMat, glm::vec3(5.0f));
         shader.setMat4("model", modelMat);
+        shader.setMat4("view", view);
+        shader.setMat4("projection", projection);
         model.Draw(shader);
 
+        // Aura rossa dietro al boss
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        auraShader.use();
+        glm::mat4 auraMat = glm::translate(glm::mat4(1.0f), pos + glm::vec3(0.0f, -5.0f, -0.1f));
+        auraMat = glm::scale(auraMat, glm::vec3(5.0f));
+        auraShader.setMat4("model", auraMat);
+        auraShader.setMat4("view", view);
+        auraShader.setMat4("projection", projection);
+        auraShader.setVec3("auraColor", glm::vec3(1.0f, 0.0f, 0.0f));
+        model.Draw(auraShader);
+        glDisable(GL_BLEND);
         // Proiettili
         proiettileShader.use();
         proiettileShader.setMat4("view", view);
         proiettileShader.setMat4("projection", projection);
         for (auto& p : proiettili) {
             p.render(glm::vec3(1.0f, 0.1f, 0.1f));
-           // player.checkIsHitted(p, esplosione, false);
         }
 
-        // Health bar
         renderHealthBarModern(view, projection, barShader);
     }
 
@@ -179,7 +192,7 @@ public:
         if (!active) return;
 
         float ratio = health / maxHealth;
-        glm::vec3 barPos = pos + glm::vec3(0.0f, 4.0f, 2.5f); // più in alto e visibile
+        glm::vec3 barPos = pos + glm::vec3(0.0f, 4.0f, 2.5f);
 
         barShader.use();
         barShader.setMat4("view", view);
@@ -253,7 +266,10 @@ public:
             float distanza = glm::distance(glm::vec2(posBullet.x, posBullet.z), glm::vec2(player.getPos().x, player.getPos().z));
             if (distanza < 0.5f) {
                 std::cout << "[BOSS] Il player è stato colpito!" << std::endl;
-                giocoTerminato = true;
+                player.subisciDanno();
+                if (player.isGameOver()) {
+                    giocoTerminato = true;
+                }
                 esplosione.inizializza(player.getPos(), 1);
                 proiettili.erase(proiettili.begin() + i);
                 break;
