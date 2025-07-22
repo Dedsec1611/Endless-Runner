@@ -64,12 +64,6 @@
     <None Include="barriera.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="navicella.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="navicella.vs">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="health_bar.vs">
       <Filter>Resource Files</Filter>
     </None>
@@ -196,7 +190,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="SpaceInvaders.rc">
+    <ResourceCompile Include="EndlessRunner.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

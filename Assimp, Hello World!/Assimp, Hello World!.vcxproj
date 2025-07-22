@@ -24,7 +24,7 @@
     <ProjectGuid>{0ab26ef0-59ef-4ba2-abf5-1d80c7fcc6a1}</ProjectGuid>
     <RootNamespace>AssimpHelloWorld</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>SpaceInvaders</ProjectName>
+    <ProjectName>EndlessRunner</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -200,8 +200,6 @@
     <None Include="blur.vs" />
     <None Include="bordo.fs" />
     <None Include="bordo.vs" />
-    <None Include="navicella.fs" />
-    <None Include="navicella.vs" />
     <None Include="packages.config" />
     <None Include="proiettile.fs" />
     <None Include="proiettile.vs" />
@@ -231,7 +229,7 @@
     <ClInclude Include="Tunnel.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="SpaceInvaders.rc" />
+    <ResourceCompile Include="EndlessRunner.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
