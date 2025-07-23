@@ -20,6 +20,7 @@ public:
     std::vector<TunnelSegment> segments;
     float segmentLength;
     int maxSegments;
+    std::vector<Model> modelliNemici;
 
     unsigned int cubeVAO = 0, cubeVBO = 0;
 
@@ -42,11 +43,13 @@ public:
     }
 
     void init() {
+        segments.clear();
+
         for (int i = 0; i < maxSegments; ++i) {
             TunnelSegment segment;
             segment.position = glm::vec3(0.0f, 0.0f, -i * segmentLength);
             segment.length = segmentLength;
-            segment.nemici.init(segment.position, modelNemico, nemicoShader);
+            segment.nemici.init(segment.position, modelliNemici, nemicoShader);
             segment.nemici.setBonusModel(&modelBonus);
             segment.nemici.setBonusShader(bonusShader);
             segment.nemici.setBonusOutlineShader(bonusOutlineShader);
@@ -91,7 +94,7 @@ public:
             float distanzaMassima = 50.0f; 
             if (seg.position.z - segmentLength > playerZ + distanzaMassima) {
                 seg.position.z -= segmentLength * maxSegments;
-                seg.nemici.init(seg.position, modelNemico, nemicoShader);
+                seg.nemici.init(seg.position, modelliNemici, nemicoShader);
                 seg.nemici.setBonusModel(&modelBonus);
             }
         }

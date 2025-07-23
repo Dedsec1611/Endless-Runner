@@ -19,12 +19,14 @@ private:
         bool isBonus = false;
         float animationTime = 0.0f;
         float baseX;
+        int modelloIndex;
+
     };
 
     std::vector<Nemico> nemici;
     float raggio;
     glm::vec3 basePosition;
-    Model model;
+    std::vector<Model> modelliNemici;
     Shader* shader;
     Model* bonusModel = nullptr;
     Shader* bonusShader = nullptr;
@@ -48,9 +50,10 @@ public:
         bonusModel = model;
     }
 
-    void init(glm::vec3 position, Model m, Shader* s) {
+    void init(glm::vec3 position, const std::vector<Model>& modelli, Shader* s)
+    {
         basePosition = position;
-        model = m;
+        modelliNemici = modelli;
         shader = s;
         nemici.clear();
 
@@ -107,7 +110,6 @@ public:
     {
         for (auto& n : nemici) {
             if (!n.vivo) {
-                //TODO
                 continue;
             }
 
@@ -118,20 +120,30 @@ public:
             currentShader->setMat4("view", view);
             currentShader->setMat4("projection", projection);
 
+            // --- Scala in base al tipo ---
+            float scale = 0.3f;
+
+            if (!n.isBonus) {
+                if (n.modelloIndex == 0) scale = 0.1f;      // alieno1
+                else if (n.modelloIndex == 1) scale = 0.1f; // ape
+                else if (n.modelloIndex == 2) scale = 0.1f; // verme
+            }
+
+            // --- Matrice modello senza offset ---
             glm::mat4 modelMatrix = glm::mat4(1.0f);
             modelMatrix = glm::translate(modelMatrix, n.position);
-            modelMatrix = glm::scale(modelMatrix, n.isBonus ? glm::vec3(0.01f) : glm::vec3(0.3f));
+            modelMatrix = glm::scale(modelMatrix, n.isBonus ? glm::vec3(0.01f) : glm::vec3(scale));
             currentShader->setMat4("model", modelMatrix);
 
+            // --- BONUS ---
             if (n.isBonus && bonusModel) {
-                // 1. Disegna contorno (outline)
                 if (bonusOutlineShader) {
                     bonusOutlineShader->use();
                     bonusOutlineShader->setMat4("view", view);
                     bonusOutlineShader->setMat4("projection", projection);
                     bonusOutlineShader->setMat4("model", modelMatrix);
                     glEnable(GL_CULL_FACE);
-                    glCullFace(GL_FRONT); // disegna solo il bordo esterno
+                    glCullFace(GL_FRONT);
                     glEnable(GL_BLEND);
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
                     bonusModel->Draw(*bonusOutlineShader);
@@ -139,7 +151,6 @@ public:
                     glCullFace(GL_BACK);
                 }
 
-                // 2. Disegna modello normale con glow
                 glEnable(GL_BLEND);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE);
                 glActiveTexture(GL_TEXTURE0);
@@ -149,14 +160,15 @@ public:
                 glDisable(GL_BLEND);
             }
 
-
-
+            // --- NEMICO ---
             else {
-                model.Draw(*currentShader);
+                if (n.modelloIndex < modelliNemici.size()) {
+                    modelliNemici[n.modelloIndex].Draw(*currentShader);
+                }
             }
-
         }
     }
+
 
 
     void checkCollisionWithPlayer(Player& player, Proiettile& proiettile, bool& giocoTerminato, bool& nemiciAttivi) {
