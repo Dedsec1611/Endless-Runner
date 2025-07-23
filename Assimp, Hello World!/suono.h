@@ -15,7 +15,6 @@
 #include <irrklang/irrKlang.h>
 #include "model.h"
 #include "proiettile.h"
-#include "esplosione.h"
 
 #pragma comment(lib, "irrKlang.lib") 
 using namespace irrklang;

@@ -8,7 +8,6 @@
 #include "shader_m.h"
 #include "model.h"
 #include "proiettile.h"
-#include "esplosione.h"
 #include "Player.h"
 
 class Boss {
@@ -112,7 +111,7 @@ public:
         }
     }
 
-    void render(Player& player, Esplosione& esplosione,
+    void render(Player& player,
         const glm::mat4& view, const glm::mat4& projection, Shader& barShader) {
 
         if (!active) return;
@@ -224,13 +223,13 @@ public:
         glBindVertexArray(0);
         glEnable(GL_DEPTH_TEST);
     }
-    void checkIsHitted(Proiettile& proiettile, Esplosione& esplosione) {
+    void checkIsHitted(Proiettile& proiettile) {
         for (int i = 0; i < proiettile.getVecPos().size(); i++) {
             float proiettile_x = proiettile.getVecPos()[i].x;
             float proiettile_z = proiettile.getVecPos()[i].z;
 
             glm::vec2 punto = glm::vec2(proiettile_x, proiettile_z - (proiettile.getLunghezza() / 2));
-            glm::vec2 centro = glm::vec2(pos.x, pos.z - 1.5f); // centrato un po' pi� avanti se serve
+            glm::vec2 centro = glm::vec2(pos.x, pos.z - 1.5f); 
 
             float dx = punto.x - centro.x;
             float dz = punto.y - centro.y;
@@ -239,7 +238,6 @@ public:
             float raggio = 3.5f; // raggio della hitbox del boss, adatta se necessario
 
             if (distanza2 <= raggio * raggio) {
-                //esplosione.inizializza(pos);
 
                 if (proiettile.getIsSpeciale()) {
                     hit(15.0f);
@@ -247,9 +245,7 @@ public:
                 else {
                     hit(1.0f);
                 }
-                if (health == 0) {
-                    esplosione.inizializza(pos, 5);
-                }
+               
                 proiettile.eliminaInPos(i); 
                 std::cout << "[BOSS] Colpito! HP: " << health << std::endl;
                 break;
@@ -258,7 +254,7 @@ public:
     }
 
 
-    void checkCollisionPlayer(Player& player, Esplosione& esplosione, bool& giocoTerminato) {
+    void checkCollisionPlayer(Player& player,  bool& giocoTerminato) {
         for (int i = 0; i < proiettili.size(); i++) {
             glm::vec3 posBullet = proiettili[i].getVecPos()[0];
             float distanza = glm::distance(glm::vec2(posBullet.x, posBullet.z), glm::vec2(player.getPos().x, player.getPos().z));
@@ -268,7 +264,6 @@ public:
                 if (player.isGameOver()) {
                     giocoTerminato = true;
                 }
-                esplosione.inizializza(player.getPos(), 1);
                 proiettili.erase(proiettili.begin() + i);
                 break;
             }

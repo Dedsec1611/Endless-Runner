@@ -1,6 +1,5 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by SpaceInvaders.rc
 
 // Valori predefiniti successivi per i nuovi oggetti
 // 

@@ -21,7 +21,6 @@
 #pragma comment(lib, "irrKlang.lib")
 
 #include "proiettile.h"
-#include "esplosione.h"
 #include "suono.h"
 #include "Boss.h"
 #include "starfield.h"
@@ -61,8 +60,7 @@ Model modelAlieno1;
 Proiettile proiettileNavicella;
 Shader proiettileShader;
 Proiettile proiettileBoss;
-
-Esplosione esplosione;
+Shader disintegrationShader;
 
 Model modelCubo;
 Model modelBonus;
@@ -377,7 +375,10 @@ void gameLoop(GLFWwindow* window) {
     Shader bossAuraShader("aura.vs", "aura.fs");
     Shader bonusShader("bonus.vs", "bonus.fs");
     Shader bonusOutlineShader("bonus_outline.vs", "bonus_outline.fs");
-    Shader esplosioneShader("esplosione.vs", "esplosione.fs");
+    disintegrationShader =  Shader("disintegrazione.vs", "disintegrazione.fs");
+   
+    glActiveTexture(GL_TEXTURE0);
+
     alienoShader = Shader("alieno.vs", "alieno.fs");
     proiettileShader = Shader("proiettile.vs", "proiettile.fs");
     bossBarShader = Shader("barriera.vs", "barriera.fs");
@@ -437,6 +438,7 @@ void gameLoop(GLFWwindow* window) {
         glDisable(GL_DEPTH_TEST);
 
         starShader->use();
+
         starfield.update(deltaTime);
         starfield.render();
 
@@ -531,11 +533,17 @@ void gameLoop(GLFWwindow* window) {
         alienoShader.setMat4("view", view);
         alienoShader.setMat4("projection", projection);
 
+        disintegrationShader.use();
+        disintegrationShader.setInt("texture_diffuse1", 0);
+        disintegrationShader.setFloat("alpha", 1.0f);
+        disintegrationShader.setMat4("view", view);
+        disintegrationShader.setMat4("projection", projection);
+
         if (!faseBoss) {
             player.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f * deltaTime));
             bonusShader.setFloat("time", glfwGetTime());
             tunnel.update(deltaTime, player.getPos().z);
-            tunnel.draw(*shaderProgram, view, projection, proiettileNavicella, proiettileNavicella, player, esplosione, giocoTerminato, nemiciAttivi);
+            tunnel.draw(*shaderProgram, view, projection, proiettileNavicella, proiettileNavicella, player,giocoTerminato, nemiciAttivi);
             glDisable(GL_DEPTH_TEST);
             starShader->use();
             starfield.update(deltaTime);
@@ -552,10 +560,10 @@ void gameLoop(GLFWwindow* window) {
             player.setIsInvincibile(true);
             player.aggiornaInvincibilita(10.0f);
             boss.aggiorna(deltaTime, glfwGetTime());
-            boss.checkIsHitted(proiettileNavicella, esplosione);
+            boss.checkIsHitted(proiettileNavicella);
            // boss.checkIsHitted(proiettileSpeciale, esplosione);
-            boss.checkCollisionPlayer(player, esplosione, giocoTerminato);
-            boss.render(player, esplosione, view, projection, healthBarShader);
+            boss.checkCollisionPlayer(player, giocoTerminato);
+            boss.render(player, view, projection, healthBarShader);
             drawCrosshair(window);
         }
 

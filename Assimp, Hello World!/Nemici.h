@@ -9,7 +9,6 @@
 #include "shader_m.h"
 #include "model.h"
 #include "proiettile.h"
-#include "esplosione.h"
 
 class Nemici {
 private:
@@ -19,7 +18,6 @@ private:
         bool vivo = true;
         bool isBonus = false;
         float animationTime = 0.0f;
-        Esplosione esplosione;
         float baseX;
     };
 
@@ -109,7 +107,7 @@ public:
     {
         for (auto& n : nemici) {
             if (!n.vivo) {
-                n.esplosione.render();
+                //TODO
                 continue;
             }
 
@@ -185,13 +183,12 @@ public:
                 }
 
                 n.vivo = false;
-                n.esplosione.inizializza(n.position, 1);
                 break;
             }
         }
     }
 
-    void checkCollision(Proiettile& proiettile, Esplosione& unused, Player& player) {
+    void checkCollision(Proiettile& proiettile, Player& player) {
         for (auto& n : nemici) {
             if (!n.vivo) continue;
             for (int i = 0; i < proiettile.getVecPos().size(); i++) {
@@ -205,7 +202,6 @@ public:
                         std::cout << "[COLLISIONE] Player ha colpito un nemico!" << std::endl;
                     }
                     n.vivo = false;
-                    n.esplosione.inizializza(n.position, 1);
                     proiettile.eliminaInPos(i);
                     break;
                 }

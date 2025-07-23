@@ -176,6 +176,8 @@
     <None Include="bonus.vs" />
     <None Include="bonus_outiline.vs" />
     <None Include="bonus_outline.fs" />
+    <None Include="disintegrazione.fs" />
+    <None Include="disintegrazione.vs" />
     <None Include="enemy_shader.fs" />
     <None Include="enemy_shader.vs" />
     <None Include="esplosione.fs" />

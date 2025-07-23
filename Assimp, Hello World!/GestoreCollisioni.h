@@ -24,7 +24,6 @@ public:
                     }
                 }
                 n.vivo = false;
-                n.esplosione.inizializza(n.position, 1);
                 break;
             }
         }

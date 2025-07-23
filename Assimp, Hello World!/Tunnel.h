@@ -95,7 +95,7 @@ public:
                 seg.nemici.setBonusModel(&modelBonus);
             }
         }
-    }void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, Proiettile& proiettile, Proiettile& proiettileSpeciale, Player& player, Esplosione& esplosione, bool& giocoTerminato, bool& nemiciAttivi){
+    }void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, Proiettile& proiettile, Proiettile& proiettileSpeciale, Player& player, bool& giocoTerminato, bool& nemiciAttivi){
         shader.use();
 
         glActiveTexture(GL_TEXTURE0);
@@ -111,8 +111,8 @@ public:
             // glDrawArrays(GL_TRIANGLES, 0, 6);
 
             seg.nemici.render(player, view, projection);
-            seg.nemici.checkCollision(proiettile, esplosione, player);
-            seg.nemici.checkCollision(proiettileSpeciale, esplosione, player);
+            seg.nemici.checkCollision(proiettile, player);
+            seg.nemici.checkCollision(proiettileSpeciale, player);
             seg.nemici.checkCollisionWithPlayer(player, proiettile, giocoTerminato, nemiciAttivi);
 
             GestoreCollisioni::gestisciCollisioneConNemici(seg.nemici, player, nemiciAttivi, giocoTerminato);
