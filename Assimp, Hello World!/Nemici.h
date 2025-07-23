@@ -75,6 +75,8 @@ public:
             n.isBonus = (i == bonusIndex);
             n.animationTime = 0.0f;
             nemici.push_back(n);
+            n.modelloIndex = std::rand() % modelli.size();
+
         }
     }
 
@@ -124,9 +126,9 @@ public:
             float scale = 0.3f;
 
             if (!n.isBonus) {
-                if (n.modelloIndex == 0) scale = 0.1f;      // alieno1
-                else if (n.modelloIndex == 1) scale = 0.1f; // ape
-                else if (n.modelloIndex == 2) scale = 0.1f; // verme
+                if (n.modelloIndex == 0) scale = 0.3f;      // alieno1
+                else if (n.modelloIndex == 1) scale = 0.3f; // ape
+                else if (n.modelloIndex == 2) scale = 0.3f; // verme
             }
 
             // --- Matrice modello senza offset ---
