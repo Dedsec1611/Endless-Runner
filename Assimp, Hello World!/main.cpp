@@ -29,6 +29,12 @@
 #include "Tunnel.h"
 #include "Background.h"
 
+unsigned int hdrFBO;
+unsigned int colorBuffers[2];
+unsigned int pingpongFBO[2];
+unsigned int pingpongColorbuffers[2];
+unsigned int quadVAO = 0, quadVBO;
+
 unsigned int SCR_WIDTH;
 unsigned int SCR_HEIGHT;
 
@@ -76,6 +82,9 @@ unsigned int crosshairVAO = 0, crosshairVBO = 0, crosshairTexture = 0;
 Shader* crosshairShader = nullptr;
 Shader* starShader = nullptr;
 
+Shader shaderBlur;
+Shader shaderBloomFinal;
+
 Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
 void initCrosshair();
@@ -84,6 +93,120 @@ void processInput(GLFWwindow* window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* starShader, Suono& suono);
 void gameLoop(GLFWwindow* window);
+
+
+void renderQuad() {
+    if (quadVAO == 0) {
+        float quadVertices[] = {
+            // pos        // tex
+            -1.0f,  1.0f, 0.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f,
+             1.0f, -1.0f, 1.0f, 0.0f,
+
+            -1.0f,  1.0f, 0.0f, 1.0f,
+             1.0f, -1.0f, 1.0f, 0.0f,
+             1.0f,  1.0f, 1.0f, 1.0f
+        };
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}
+
+void setupHDRBloom(int width, int height) {
+    glGenFramebuffers(1, &hdrFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+
+    glGenTextures(2, colorBuffers);
+    for (unsigned int i = 0; i < 2; i++) {
+        glBindTexture(GL_TEXTURE_2D, colorBuffers[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorBuffers[i], 0);
+    }
+
+    unsigned int rboDepth;
+    glGenRenderbuffers(1, &rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+
+    unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+    glDrawBuffers(2, attachments);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "[ERRORE] HDR framebuffer incompleto." << std::endl;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glGenFramebuffers(2, pingpongFBO);
+    glGenTextures(2, pingpongColorbuffers);
+    for (unsigned int i = 0; i < 2; i++) {
+        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+        glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpongColorbuffers[i], 0);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cout << "[ERRORE] pingpong framebuffer incompleto." << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void renderBlur(Shader& blurShader, int amount) {
+    bool horizontal = true, first_iteration = true;
+    blurShader.use();
+    for (unsigned int i = 0; i < amount; i++) {
+        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
+        blurShader.setInt("horizontal", horizontal);
+        glBindTexture(GL_TEXTURE_2D, first_iteration ? colorBuffers[1] : pingpongColorbuffers[!horizontal]);
+        renderQuad();
+        horizontal = !horizontal;
+        if (first_iteration) first_iteration = false;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void renderHDR(Shader& finalShader, float exposure) {
+    finalShader.use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[1]);
+    finalShader.setInt("scene", 0);
+    finalShader.setInt("bloomBlur", 1);
+    finalShader.setFloat("exposure", exposure);
+    renderQuad();
+}
+
+void beginHDRRender() {
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void endHDRRender(Shader& shaderBloomFinal, Shader& shaderBlur ) {
+    renderBlur(shaderBlur, 10);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    renderHDR(shaderBloomFinal, 0.1f);
+}
+
 
 void initCrosshair() {
     float scaleY = 0.1f;
@@ -189,7 +312,7 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
         glfwPollEvents();
 
         glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        beginHDRRender();
         glDisable(GL_DEPTH_TEST);
 
         // Sfondo dinamico
@@ -303,6 +426,7 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             inImpostazioni = false;
         }
+        endHDRRender(shaderBloomFinal, shaderBlur);
     }
 }
 
@@ -332,6 +456,7 @@ int main() {
         std::cerr << "[ERRORE] Impossibile inizializzare GLAD." << std::endl;
         return -1;
     }
+    setupHDRBloom(SCR_WIDTH, SCR_HEIGHT);
 
     while (!glfwWindowShouldClose(window)) {
         giocoTerminato = false;
@@ -383,6 +508,17 @@ void gameLoop(GLFWwindow* window) {
     proiettileShader = Shader("proiettile.vs", "proiettile.fs");
     bossBarShader = Shader("barriera.vs", "barriera.fs");
     healthBarShader = Shader("health_bar.vs", "health_bar.fs");
+    shaderBlur = Shader("blur.vs", "blur.fs");
+    shaderBloomFinal = Shader("bloom_final.vs", "bloom_final.fs");
+    shaderBlur.use();
+    shaderBlur.setInt("image", 0);
+
+    shaderBloomFinal.use();
+    shaderBloomFinal.setFloat("saturation", 1.3f);
+    shaderBloomFinal.setFloat("contrast", 1.0f);
+    shaderBloomFinal.setFloat("brightness", 1.3f);
+    shaderBloomFinal.setFloat("exposure", 0.9f);
+
 
     shaderProgram = new Shader("basic.vs", "basic.fs");
     backgroundShader = new Shader("background.vs", "background.fs");
@@ -434,7 +570,8 @@ void gameLoop(GLFWwindow* window) {
         lastFrame = currentFrame;
 
         glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+       // glClear(GL_COLOR_BUFFER_BIT);
+        beginHDRRender();
         glDisable(GL_DEPTH_TEST);
 
         starShader->use();
@@ -455,6 +592,7 @@ void gameLoop(GLFWwindow* window) {
             startGame = true;
         else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
             apriMenuImpostazioni(window, starfield, starShader, suono);
+        endHDRRender(shaderBloomFinal, shaderBlur);
     }
 
     while (!glfwWindowShouldClose(window)) {
@@ -484,7 +622,7 @@ void gameLoop(GLFWwindow* window) {
         proiettileNavicella.aggiorna(deltaTime);
         proiettileBoss.aggiorna(deltaTime);
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        beginHDRRender();
 
         glm::mat4 view;
         if (faseBoss && transizioneBossAttiva) {
@@ -578,6 +716,7 @@ void gameLoop(GLFWwindow* window) {
         if (giocoTerminato) {
             break;
         }
+        endHDRRender(shaderBloomFinal, shaderBlur);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -585,21 +724,25 @@ void gameLoop(GLFWwindow* window) {
 
     // Schermata finale
     glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    beginHDRRender();
     glDisable(GL_DEPTH_TEST);
+   
     std::string messaggio = vittoria ? "HAI VINTO!" : "HAI PERSO!";
     RenderText(messaggio, SCR_WIDTH / 2.0f - 100.0f, SCR_HEIGHT / 2.0f, 1.0f, glm::vec3(1.0f, 0.5f, 0.0f));
     RenderText("Premi SPAZIO per tornare al menu", SCR_WIDTH / 2.0f - 180.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.5f, glm::vec3(1.0f));
+    endHDRRender(shaderBloomFinal, shaderBlur);
+
     glfwSwapBuffers(window);
-    while (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+    while (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !glfwWindowShouldClose(window)) {
         glfwPollEvents();
     }
 
-    // Ora aspetta una nuova pressione
-    while (!glfwWindowShouldClose(window)) {
+    // Ora aspetta nuova pressione
+    bool attesaPressione = true;
+    while (attesaPressione && !glfwWindowShouldClose(window)) {
         glfwPollEvents();
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            break;
+            attesaPressione = false;
         }
     }
 }

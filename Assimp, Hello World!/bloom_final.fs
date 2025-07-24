@@ -1,23 +1,21 @@
 #version 330 core
 out vec4 FragColor;
-
 in vec2 TexCoords;
+uniform sampler2D scene, bloomBlur;
+uniform float exposure, saturation, contrast, brightness;
+const float gamma = 2.2;
 
-uniform sampler2D scene;
-uniform sampler2D bloomBlur;
-uniform bool bloom;
-uniform float exposure;
+void main(){
+    vec3 hdr = texture(scene, TexCoords).rgb;
+    hdr += texture(bloomBlur, TexCoords).rgb;
 
-void main()
-{             
-    const float gamma = 1.9;
-    vec3 hdrColor = texture(scene, TexCoords).rgb;      
-    vec3 bloomColor = texture(bloomBlur, TexCoords).rgb;
-    if(bloom)
-        hdrColor += bloomColor; // additive blending
-    // tone mapping
-    vec3 result = vec3(1.0) - exp(-hdrColor * exposure);
-    // also gamma correct while we're at it       
-    result = pow(result, vec3(1.0 / gamma));
-    FragColor = vec4(result, 1.0);
+    vec3 gray = vec3(dot(hdr, vec3(0.2126,0.7152,0.0722)));
+    vec3 col = mix(gray, hdr, saturation);
+
+    col = (col - 0.5) * contrast + 0.5;
+    col *= brightness;
+
+    vec3 mapped = vec3(1.0) - exp(-col * exposure);
+    mapped = pow(mapped, vec3(1.0 / gamma));
+    FragColor = vec4(mapped, 1.0);
 }
