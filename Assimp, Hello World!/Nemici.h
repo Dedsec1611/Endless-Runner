@@ -31,8 +31,8 @@ private:
     Shader* bonusShader = nullptr;
     Shader* bonusOutlineShader = nullptr;
 
-    int minNemici = 8;
-    int maxNemici = 10;
+    int minNemici = 5;
+    int maxNemici = 8;
     int maxBonusPerSegmento = 1;
     float areaX = 10.0f;
     float areaZ = 12.0f;
@@ -191,7 +191,7 @@ public:
         }
     }
 
-
+//TODO creazione esplosione
     void checkCollisionWithPlayer(Player& player, Proiettile& proiettile, bool& giocoTerminato, bool& nemiciAttivi) {
         for (auto& n : nemici) {
             if (!n.vivo) continue;

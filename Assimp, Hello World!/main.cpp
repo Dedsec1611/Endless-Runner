@@ -49,7 +49,7 @@ float timerNemici = 0.0f;
 float tempoGioco = 0.0f;
 float tempoUltimaGenerazione = 0.0f;
 float intervalloGenerazioneNemici = 3.0f; // ogni 6 secondi
-float tempoBoss = 60.0f;
+float tempoBoss = 10.0f;
 float timerTransizioneBoss = 0.0f;
 float tempoTransizioneBoss = 2.0f;
 
@@ -211,7 +211,7 @@ void endHDRRender(Shader& shaderBloomFinal, Shader& shaderBlur ) {
     renderHDR(shaderBloomFinal, 0.1f);
 }
 
-
+//TODO creazione delle esplosioni quando un nemico viene colpito
 void initCrosshair() {
     float scaleY = 0.1f;
     float scaleX = scaleY * ((float)SCR_HEIGHT / SCR_WIDTH);

@@ -37,6 +37,7 @@ public:
     void setLivello(int l) { livello = l; }
     int getLivello() const { return livello; }
 
+//TODO gestione dei livelli
     void setShader(Shader s) { shader = s; }
     void setAuraShader(Shader s) { auraShader = s; } // set dello shader aura
     void setModel(Model m) { model = m; }
