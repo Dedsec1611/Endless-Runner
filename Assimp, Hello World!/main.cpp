@@ -44,10 +44,12 @@ bool nemiciAttivi = false;
 bool faseBoss = false;
 bool transizioneBossAttiva = false;
 
-float tempoAvvioNemici = 5.0f;
+float tempoAvvioNemici = 3.0f;
 float timerNemici = 0.0f;
 float tempoGioco = 0.0f;
-float tempoBoss = 10.0f;
+float tempoUltimaGenerazione = 0.0f;
+float intervalloGenerazioneNemici = 3.0f; // ogni 6 secondi
+float tempoBoss = 60.0f;
 float timerTransizioneBoss = 0.0f;
 float tempoTransizioneBoss = 2.0f;
 
@@ -610,6 +612,7 @@ void gameLoop(GLFWwindow* window) {
         lastFrame = currentFrame;
 
         tempoGioco += deltaTime;
+       
         if (!faseBoss && tempoGioco >= tempoBoss) {
             faseBoss = true;
             transizioneBossAttiva = true;
@@ -651,7 +654,7 @@ void gameLoop(GLFWwindow* window) {
             view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
         }
 
-        glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 120.0f);
 
         playerShader.use();
         playerShader.setMat4("view", view);
@@ -691,6 +694,11 @@ void gameLoop(GLFWwindow* window) {
             bonusShader.setFloat("time", glfwGetTime());
             tunnel.update(deltaTime, player.getPos().z);
             tunnel.draw(*shaderProgram, view, projection, proiettileNavicella, proiettileNavicella, player,giocoTerminato, nemiciAttivi);
+            for (auto* nemici : tunnel.getTuttiINemici()) {
+                GestoreCollisioni::gestisciCollisioneConNemici(*nemici, player, nemiciAttivi, giocoTerminato);
+            }
+
+
             glDisable(GL_DEPTH_TEST);
             starShader->use();
             starfield.update(deltaTime);

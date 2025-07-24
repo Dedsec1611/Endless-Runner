@@ -12,17 +12,23 @@ public:
             float dist = glm::distance(glm::vec2(player.getPos().x, player.getPos().z),
                 glm::vec2(n.position.x, n.position.z));
 
-            if (dist < 1.0f && !player.isInvincibile()) {
+            if (dist < 1.0f) {
                 if (n.isBonus && !player.haBonusSparo()) {
                     player.abilitaSparoTemporaneo(5.0f);
                 }
-                else if (nemiciAttivi) {
-                    std::cout << "[COLLISIONE] Player ha colpito un nemico!" << std::endl;
+                else {
+                    if (!nemiciAttivi || player.isInvincibile()) continue;
+
+                    std::cout << "[COLLISIONE] Player ha impattato un nemico!" << std::endl;
                     player.subisciDanno();
+                    player.setIsInvincibile(true);
+                    player.aggiornaInvincibilita(0.0f); // reset immediato
+
                     if (player.isGameOver()) {
                         giocoTerminato = true;
                     }
                 }
+
                 n.vivo = false;
                 break;
             }

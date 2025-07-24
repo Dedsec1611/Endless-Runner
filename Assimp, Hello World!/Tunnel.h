@@ -12,6 +12,9 @@ struct TunnelSegment {
     glm::vec3 position;
     float length;
     Nemici nemici;
+    bool rigeneratoDiRecente = false;
+    float tempoUltimaRigenerazione = 0.0f;
+
 };
 
 class Tunnel {
@@ -42,19 +45,28 @@ public:
         modelliNemici = modelli;
     }
 
-    void init() {
+   /* void init() {
+      
+        maxSegments = 20;
+
+        segments.clear(); // Pulisce eventuali segmenti precedenti
+
+        float distanzaIniziale = 40.0f; // distanza dalla navicella iniziale
         for (int i = 0; i < maxSegments; ++i) {
             TunnelSegment segment;
-            segment.position = glm::vec3(0.0f, 0.0f, -i * segmentLength);
+            segment.position = glm::vec3(0.0f, 0.0f, -i * segmentLength - distanzaIniziale);
             segment.length = segmentLength;
+
             segment.nemici.setModelliNemici(modelliNemici);
             segment.nemici.setBonusModel(&modelBonus);
             segment.nemici.setBonusShader(bonusShader);
             segment.nemici.setBonusOutlineShader(bonusOutlineShader);
             segment.nemici.init(segment.position, nemicoShader);
+
             segments.push_back(segment);
         }
 
+        // Inizializza la geometria del tunnel
         float planeVertices[] = {
             -1.0f, 0.0f,  0.0f,
              1.0f, 0.0f,  0.0f,
@@ -73,6 +85,86 @@ public:
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glBindVertexArray(0);
 
+        // Carica texture di sfondo
+        backgroundTextures.clear();
+        loadBackgroundTexture("../src/images/scenario1.png");
+        loadBackgroundTexture("../src/images/background.png");
+        loadBackgroundTexture("../src/images/scenario1.png");
+    }
+
+
+    void update(float deltaTime, float playerZ) {
+        scenarioTimer += deltaTime;
+       
+
+        if (scenarioTimer >= scenarioDuration) {
+            currentScenario = (currentScenario + 1) % backgroundTextures.size();
+            scenarioTimer = 0.0f;
+        }
+
+        float cooldownRigenerazione = 2.0f; //rigenerazione
+        float distanzaMassima = 50.0f;
+        for (auto& seg : segments) {
+       
+            seg.nemici.update(deltaTime);
+
+            seg.tempoUltimaRigenerazione += deltaTime;
+
+            if (seg.position.z - segmentLength > playerZ + distanzaMassima &&
+                seg.tempoUltimaRigenerazione >= cooldownRigenerazione) {
+
+                seg.position.z -= segmentLength * (maxSegments + 0.75f);
+                seg.nemici.setModelliNemici(modelliNemici);
+                seg.nemici.setBonusModel(&modelBonus);
+                seg.nemici.setBonusShader(bonusShader);
+                seg.nemici.setBonusOutlineShader(bonusOutlineShader);
+                seg.nemici.init(seg.position, nemicoShader);
+                seg.tempoUltimaRigenerazione = 0.0f;
+            }
+        }
+
+    }*/
+    void init() {
+        maxSegments = 50;  // Copre 100 secondi di gioco
+
+        segments.clear(); // Pulisce eventuali segmenti precedenti
+
+        float distanzaIniziale = 40.0f; // parte distante dalla navicella
+        for (int i = 0; i < maxSegments; ++i) {
+            TunnelSegment segment;
+            segment.position = glm::vec3(0.0f, 0.0f, -i * segmentLength - distanzaIniziale);
+            segment.length = segmentLength;
+
+            segment.nemici.setModelliNemici(modelliNemici);
+            segment.nemici.setBonusModel(&modelBonus);
+            segment.nemici.setBonusShader(bonusShader);
+            segment.nemici.setBonusOutlineShader(bonusOutlineShader);
+            segment.nemici.init(segment.position, nemicoShader);
+
+            segments.push_back(segment);
+        }
+
+        // Inizializza la geometria del tunnel
+        float planeVertices[] = {
+            -1.0f, 0.0f,  0.0f,
+             1.0f, 0.0f,  0.0f,
+             1.0f, 0.0f, -1.0f,
+            -1.0f, 0.0f,  0.0f,
+             1.0f, 0.0f, -1.0f,
+            -1.0f, 0.0f, -1.0f
+        };
+
+        glGenVertexArrays(1, &cubeVAO);
+        glGenBuffers(1, &cubeVBO);
+        glBindVertexArray(cubeVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glBindVertexArray(0);
+
+        // Carica texture di sfondo
+        backgroundTextures.clear();
         loadBackgroundTexture("../src/images/scenario1.png");
         loadBackgroundTexture("../src/images/background.png");
         loadBackgroundTexture("../src/images/scenario1.png");
@@ -86,18 +178,9 @@ public:
             scenarioTimer = 0.0f;
         }
 
+        // Aggiorna solo la posizione dei nemici
         for (auto& seg : segments) {
             seg.nemici.update(deltaTime);
-
-            float distanzaMassima = 50.0f;
-            if (seg.position.z - segmentLength > playerZ + distanzaMassima) {
-                seg.position.z -= segmentLength * maxSegments;
-                seg.nemici.setModelliNemici(modelliNemici);
-                seg.nemici.setBonusModel(&modelBonus);
-                seg.nemici.setBonusShader(bonusShader);
-                seg.nemici.setBonusOutlineShader(bonusOutlineShader);
-                seg.nemici.init(seg.position, nemicoShader);
-            }
         }
     }
 
@@ -114,7 +197,7 @@ public:
             seg.nemici.checkCollision(proiettile, player);
             seg.nemici.checkCollision(proiettileSpeciale, player);
             seg.nemici.checkCollisionWithPlayer(player, proiettile, giocoTerminato, nemiciAttivi);
-            GestoreCollisioni::gestisciCollisioneConNemici(seg.nemici, player, nemiciAttivi, giocoTerminato);
+           // GestoreCollisioni::gestisciCollisioneConNemici(seg.nemici, player, nemiciAttivi, giocoTerminato);
         }
         glBindVertexArray(0);
     }
@@ -129,6 +212,14 @@ public:
         for (auto tex : backgroundTextures)
             glDeleteTextures(1, &tex);
     }
+    std::vector<Nemici*> getTuttiINemici() {
+        std::vector<Nemici*> tutti;
+        for (auto& seg : segments) {
+            tutti.push_back(&seg.nemici);
+        }
+        return tutti;
+    }
+
 
 private:
     void loadBackgroundTexture(const std::string& path) {

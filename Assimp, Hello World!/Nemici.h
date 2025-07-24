@@ -31,11 +31,11 @@ private:
     Shader* bonusShader = nullptr;
     Shader* bonusOutlineShader = nullptr;
 
-    int minNemici = 1;
-    int maxNemici = 3;
+    int minNemici = 8;
+    int maxNemici = 10;
     int maxBonusPerSegmento = 1;
-    float areaX = 6.0f;
-    float areaZ = 8.0f;
+    float areaX = 10.0f;
+    float areaZ = 12.0f;
     float minSpeed = 1.0f;
     float maxSpeed = 3.0f;
     float elapsedTime = 0.0f;
@@ -61,29 +61,66 @@ public:
         int numNemici = minNemici + (std::rand() % (maxNemici - minNemici + 1));
         int bonusCount = 0;
 
-        for (int i = 0; i < numNemici; ++i) {
+        std::vector<glm::vec3> posizioniOccupate;
+        float distanzaMinima = 4.0f;
+
+        int creati = 0;
+        int tentativiTotali = 0;
+
+        while (creati < numNemici && tentativiTotali < 500) {
             Nemico n;
-            float offsetX = ((std::rand() / (float)RAND_MAX) * 2.0f - 1.0f) * areaX;
-            float ritardoZ = 50.0f + ((std::rand() / (float)RAND_MAX) * 20.0f);
+            bool posizioneValida = false;
+            glm::vec3 nuovaPosizione;
 
-            n.baseX = basePosition.x + offsetX;
-            n.position = glm::vec3(n.baseX, basePosition.y, basePosition.z - ritardoZ);
+            int tentativi = 0;
+            while (!posizioneValida && tentativi < 100) {
+                float offsetX = ((std::rand() / (float)RAND_MAX) * 2.0f - 1.0f) * areaX;
+                float offsetZ = ((std::rand() / (float)RAND_MAX) * 2.0f - 1.0f) * areaZ;
+                nuovaPosizione = glm::vec3(basePosition.x + offsetX, basePosition.y, basePosition.z - offsetZ);
 
+                posizioneValida = true;
+                for (const auto& pos : posizioniOccupate) {
+                    if (glm::distance(glm::vec2(nuovaPosizione.x, nuovaPosizione.z), glm::vec2(pos.x, pos.z)) < distanzaMinima) {
+                        posizioneValida = false;
+                        break;
+                    }
+                }
+                tentativi++;
+                tentativiTotali++;
+            }
+
+            if (!posizioneValida) continue;
+
+            n.baseX = nuovaPosizione.x;
+            n.position = nuovaPosizione;
             n.speed = minSpeed + static_cast<float>(rand()) / RAND_MAX * (maxSpeed - minSpeed);
             n.vivo = true;
             n.isBonus = false;
             n.animationTime = 0.0f;
             n.modelIndex = std::rand() % modelliNemici.size();
+
+            posizioniOccupate.push_back(n.position);
+
             if (bonusCount < maxBonusPerSegmento && (std::rand() % 100) < 20) {
                 n.isBonus = true;
                 bonusCount++;
             }
 
             nemici.push_back(n);
+            creati++;
+        }
+        
+        if (creati == numNemici && bonusCount == 0 && maxBonusPerSegmento > 0 && !nemici.empty()) {
+            nemici.back().isBonus = true;
+            std::cout << "[BONUS] Bonus forzato sul nemico finale del segmento\n";
+            bonusCount++;
         }
 
-        std::cout << "[INIT] Nemici: " << numNemici << ", Bonus: " << bonusCount << "\n";
+    
+        std::cout << "[INIT] Nemici: " << creati << ", Bonus: " << bonusCount << "\n";
     }
+
+
 
     void update(float deltaTime) {
         elapsedTime += deltaTime;
@@ -113,7 +150,15 @@ public:
 
             glm::mat4 modelMatrix = glm::mat4(1.0f);
             modelMatrix = glm::translate(modelMatrix, n.position);
-            modelMatrix = glm::scale(modelMatrix, n.isBonus ? glm::vec3(0.01f) : glm::vec3(0.3f));
+            
+            // Animazione dinamica: scala pulsante e leggera rotazione
+            float scale = n.isBonus ? 0.01f : 0.25f + 0.05f * std::sin(n.animationTime * 2.0f);
+            modelMatrix = glm::scale(modelMatrix, glm::vec3(scale));
+
+            float angle = 0.2f * std::sin(n.animationTime * 3.0f); // rotazione oscillante su Y
+            modelMatrix = glm::rotate(modelMatrix, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+
+
             currentShader->setMat4("model", modelMatrix);
 
             if (n.isBonus && bonusModel) {
