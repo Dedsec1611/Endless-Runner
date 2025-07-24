@@ -62,6 +62,8 @@ Shader* backgroundShader = nullptr;
 Shader* shaderProgram = nullptr;
 Shader alienoShader;
 Model modelAlieno1;
+Model modelAlieno2;
+Model modelAlieno3;
 
 Proiettile proiettileNavicella;
 Shader proiettileShader;
@@ -531,6 +533,8 @@ void gameLoop(GLFWwindow* window) {
 
     Model modelNavicella("../src/models/navicella/navicella.obj");
     modelAlieno1 = Model("../src/models/alieni/alieno1/alieno1.obj");
+    modelAlieno2 = Model("../src/models/alieni/alieno2/alieno2.obj");
+    modelAlieno3 = Model("../src/models/alieni/alieno3/alieno3.obj");
     modelCubo = Model("../src/models/cubo.obj");
     modelBonus = Model("../src/models/armabonus/Flamethrower without armor.obj");
     modelBoss = Model("../src/models/enemy/enemy.obj");
@@ -538,7 +542,12 @@ void gameLoop(GLFWwindow* window) {
     player.setShader(playerShader);
     player.setModel(modelNavicella);
 
-    tunnel.modelNemico = modelAlieno1;
+    std::vector<Model> modelliNemici = {
+        modelAlieno1,
+        modelAlieno2,
+        modelAlieno3
+    };
+    tunnel.setModelliNemici(modelliNemici);
     tunnel.nemicoShader = &alienoShader;
     tunnel.modelBonus = modelBonus;
     tunnel.bonusShader = &bonusShader;

@@ -8,7 +8,6 @@
 #include "Player.h"
 #include "GestoreCollisioni.h"
 
-
 struct TunnelSegment {
     glm::vec3 position;
     float length;
@@ -28,17 +27,19 @@ public:
     float scenarioDuration = 20.0f;
     float scenarioTimer = 0.0f;
 
-    Model modelNemico;
+    std::vector<Model> modelliNemici; 
     Model modelBonus;
     Shader* nemicoShader;
     Shader* bonusShader = nullptr;
     Shader* bonusOutlineShader = nullptr;
 
-
-	
     Tunnel() {
         segmentLength = 20.0f;
         maxSegments = 5;
+    }
+
+    void setModelliNemici(const std::vector<Model>& modelli) {
+        modelliNemici = modelli;
     }
 
     void init() {
@@ -46,11 +47,11 @@ public:
             TunnelSegment segment;
             segment.position = glm::vec3(0.0f, 0.0f, -i * segmentLength);
             segment.length = segmentLength;
-            segment.nemici.init(segment.position, modelNemico, nemicoShader);
+            segment.nemici.setModelliNemici(modelliNemici);
             segment.nemici.setBonusModel(&modelBonus);
             segment.nemici.setBonusShader(bonusShader);
             segment.nemici.setBonusOutlineShader(bonusOutlineShader);
-
+            segment.nemici.init(segment.position, nemicoShader);
             segments.push_back(segment);
         }
 
@@ -88,14 +89,19 @@ public:
         for (auto& seg : segments) {
             seg.nemici.update(deltaTime);
 
-            float distanzaMassima = 50.0f; 
+            float distanzaMassima = 50.0f;
             if (seg.position.z - segmentLength > playerZ + distanzaMassima) {
                 seg.position.z -= segmentLength * maxSegments;
-                seg.nemici.init(seg.position, modelNemico, nemicoShader);
+                seg.nemici.setModelliNemici(modelliNemici);
                 seg.nemici.setBonusModel(&modelBonus);
+                seg.nemici.setBonusShader(bonusShader);
+                seg.nemici.setBonusOutlineShader(bonusOutlineShader);
+                seg.nemici.init(seg.position, nemicoShader);
             }
         }
-    }void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, Proiettile& proiettile, Proiettile& proiettileSpeciale, Player& player, bool& giocoTerminato, bool& nemiciAttivi){
+    }
+
+    void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, Proiettile& proiettile, Proiettile& proiettileSpeciale, Player& player, bool& giocoTerminato, bool& nemiciAttivi) {
         shader.use();
 
         glActiveTexture(GL_TEXTURE0);
@@ -104,26 +110,18 @@ public:
 
         glBindVertexArray(cubeVAO);
         for (auto& seg : segments) {
-            // opzionale: disegno piano
-            // glm::mat4 model = glm::translate(glm::mat4(1.0f), seg.position);
-            // model = glm::scale(model, glm::vec3(10.0f, 1.0f, segmentLength));
-            // shader.setMat4("model", model);
-            // glDrawArrays(GL_TRIANGLES, 0, 6);
-
             seg.nemici.render(player, view, projection);
             seg.nemici.checkCollision(proiettile, player);
             seg.nemici.checkCollision(proiettileSpeciale, player);
             seg.nemici.checkCollisionWithPlayer(player, proiettile, giocoTerminato, nemiciAttivi);
-
             GestoreCollisioni::gestisciCollisioneConNemici(seg.nemici, player, nemiciAttivi, giocoTerminato);
         }
         glBindVertexArray(0);
     }
+
     Nemici& getNemici() {
-        // Ritorna i nemici del primo segmento (quello più vicino al player)
         return segments[0].nemici;
     }
-
 
     void cleanup() {
         glDeleteVertexArrays(1, &cubeVAO);

@@ -1,0 +1,25 @@
+# Materiale per bloodWasp
+
+newmtl bloodWaspMaterial
+
+# Colore base
+map_Kd bloodWasp_diffuse.png
+
+# Mappa speculare
+map_Ks bloodWasp_spec.png
+
+# Mappa normale (usata come bump map per compatibilità MTL standard)
+map_Bump bloodWasp_normal.png
+
+# Mappa trasparenza (alpha)
+map_d bloodWasp_alpha.png
+# oppure, se il tuo visualizzatore supporta trasparenza RGB:
+# map_Tr bloodWasp_alpha.png
+
+# Valori base del materiale
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.500 0.500 0.500
+Ns 100.000
+d 1.0
+illum 2

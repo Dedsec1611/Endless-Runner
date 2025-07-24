@@ -19,45 +19,47 @@ private:
         bool isBonus = false;
         float animationTime = 0.0f;
         float baseX;
+        int modelIndex = 0;
     };
 
     std::vector<Nemico> nemici;
     float raggio;
     glm::vec3 basePosition;
-    Model model;
+    std::vector<Model> modelliNemici;
     Shader* shader;
     Model* bonusModel = nullptr;
     Shader* bonusShader = nullptr;
     Shader* bonusOutlineShader = nullptr;
 
-
-    int minNemici = 3;
-    int maxNemici = 5;
+    int minNemici = 1;
+    int maxNemici = 3;
+    int maxBonusPerSegmento = 1;
     float areaX = 6.0f;
     float areaZ = 8.0f;
     float minSpeed = 1.0f;
-    float maxSpeed = 4.0f;
+    float maxSpeed = 3.0f;
     float elapsedTime = 0.0f;
-    
 
 public:
     Nemici() : raggio(1.0f), basePosition(0.0f, 0.0f, 0.0f) {
         std::srand(static_cast<unsigned>(std::time(nullptr)));
     }
+
+    void setModelliNemici(const std::vector<Model>& modelli) {
+        modelliNemici = modelli;
+    }
+
     void setBonusModel(Model* model) {
         bonusModel = model;
     }
 
-    void init(glm::vec3 position, Model m, Shader* s) {
+    void init(glm::vec3 position, Shader* s) {
         basePosition = position;
-        model = m;
         shader = s;
         nemici.clear();
 
         int numNemici = minNemici + (std::rand() % (maxNemici - minNemici + 1));
-        int bonusIndex = std::rand() % numNemici;
-
-        std::cout << "[INIT] Generati " << numNemici << " nemici per segmento. Bonus in posizione: " << bonusIndex << "\n";
+        int bonusCount = 0;
 
         for (int i = 0; i < numNemici; ++i) {
             Nemico n;
@@ -69,48 +71,39 @@ public:
 
             n.speed = minSpeed + static_cast<float>(rand()) / RAND_MAX * (maxSpeed - minSpeed);
             n.vivo = true;
-            n.isBonus = (i == bonusIndex);
+            n.isBonus = false;
             n.animationTime = 0.0f;
+            n.modelIndex = std::rand() % modelliNemici.size();
+            if (bonusCount < maxBonusPerSegmento && (std::rand() % 100) < 20) {
+                n.isBonus = true;
+                bonusCount++;
+            }
+
             nemici.push_back(n);
         }
+
+        std::cout << "[INIT] Nemici: " << numNemici << ", Bonus: " << bonusCount << "\n";
     }
 
     void update(float deltaTime) {
         elapsedTime += deltaTime;
-
         for (auto& n : nemici) {
-           /* if (!n.vivo) {
-                n.esplosione.update(deltaTime);
-                continue;
-            }*/
-
             n.animationTime += deltaTime;
             n.position.z += n.speed * deltaTime;
 
-            // Oscillazione orizzontale sinusoidale sull'asse X
             float ampiezza = 1.0f;
             float frequenzaBase = 1.0f;
             float maxFrequenza = 3.0f;
             float frequenza = frequenzaBase + (elapsedTime * 0.1f);
-            if (frequenza > maxFrequenza) {
-                frequenza = maxFrequenza;
-            }
+            frequenza = std::min(frequenza, maxFrequenza);
+
             n.position.x = n.baseX + ampiezza * std::sin(frequenza * n.animationTime);
         }
     }
 
-    void setPosition(glm::vec3 newPos) {
-        basePosition = newPos;
-    }
-
-    void render(Player& player, const glm::mat4& view, const glm::mat4& projection)
-    {
+    void render(Player& player, const glm::mat4& view, const glm::mat4& projection) {
         for (auto& n : nemici) {
-            if (!n.vivo) {
-                //TODO
-                continue;
-            }
-
+            if (!n.vivo) continue;
             if (n.isBonus && player.haBonusSparo()) continue;
 
             Shader* currentShader = (n.isBonus && bonusShader) ? bonusShader : shader;
@@ -124,22 +117,19 @@ public:
             currentShader->setMat4("model", modelMatrix);
 
             if (n.isBonus && bonusModel) {
-                // 1. Disegna contorno (outline)
                 if (bonusOutlineShader) {
                     bonusOutlineShader->use();
                     bonusOutlineShader->setMat4("view", view);
                     bonusOutlineShader->setMat4("projection", projection);
                     bonusOutlineShader->setMat4("model", modelMatrix);
                     glEnable(GL_CULL_FACE);
-                    glCullFace(GL_FRONT); // disegna solo il bordo esterno
+                    glCullFace(GL_FRONT);
                     glEnable(GL_BLEND);
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
                     bonusModel->Draw(*bonusOutlineShader);
                     glDisable(GL_BLEND);
                     glCullFace(GL_BACK);
                 }
-
-                // 2. Disegna modello normale con glow
                 glEnable(GL_BLEND);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE);
                 glActiveTexture(GL_TEXTURE0);
@@ -148,13 +138,11 @@ public:
                 bonusModel->Draw(*bonusShader);
                 glDisable(GL_BLEND);
             }
-
-
-
             else {
-                model.Draw(*currentShader);
+                if (!modelliNemici.empty()) {
+                    modelliNemici[n.modelIndex].Draw(*currentShader);
+                }
             }
-
         }
     }
 
@@ -209,19 +197,14 @@ public:
         }
     }
 
+    void setBonusShader(Shader* shader) { bonusShader = shader; }
+    void setBonusOutlineShader(Shader* shader) { bonusOutlineShader = shader; }
+    std::vector<Nemico>& getNemiciRiferimento() { return nemici; }
     bool tuttiMorti() const {
         for (const auto& n : nemici) {
             if (n.vivo) return false;
         }
         return true;
-    }
-    std::vector<Nemico>& getNemiciRiferimento() { return nemici; }
-  
-    void setBonusShader(Shader* shader) {
-        bonusShader = shader;
-    }
-    void setBonusOutlineShader(Shader* shader) {
-        bonusOutlineShader = shader;
     }
 
 
