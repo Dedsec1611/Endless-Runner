@@ -89,6 +89,10 @@ Shader* starShader = nullptr;
 Shader shaderBlur;
 Shader shaderBloomFinal;
 
+SistemaParticelle* sistemaParticelle = nullptr;
+Shader* particellaShader = nullptr;
+GLuint particellaTexture = 0;
+
 Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
 void initCrosshair();
@@ -97,6 +101,43 @@ void processInput(GLFWwindow* window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* starShader, Suono& suono);
 void gameLoop(GLFWwindow* window);
+
+
+
+GLuint loadParticleTexture(const char* path) {
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    int width, height, nrChannels;
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
+
+    if (data) {
+        GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+    else {
+        std::cerr << "[ERRORE] Caricamento texture particellare fallito!" << std::endl;
+    }
+
+    stbi_image_free(data);
+    return textureID;
+}
+void initParticleSystem(SistemaParticelle*& system, Shader*& particleShader, GLuint& textureID) {
+    system = new SistemaParticelle(200);
+    particleShader = new Shader("particella.vs", "particella.fs");
+    system->setShader(particleShader);
+    textureID = loadParticleTexture("../src/images/esplosione.png");
+}
+
+
+
+
 
 
 void renderQuad() {
@@ -543,6 +584,7 @@ void gameLoop(GLFWwindow* window) {
 
     player.setShader(playerShader);
     player.setModel(modelNavicella);
+    initParticleSystem(sistemaParticelle, particellaShader, particellaTexture);
 
     std::vector<Model> modelliNemici = {
         modelAlieno1,
@@ -554,6 +596,7 @@ void gameLoop(GLFWwindow* window) {
     tunnel.modelBonus = modelBonus;
     tunnel.bonusShader = &bonusShader;
     tunnel.bonusOutlineShader = &bonusOutlineShader;
+    tunnel.particleSystem = sistemaParticelle;
     tunnel.init();
 
     boss.setModel(modelBoss);
@@ -562,6 +605,8 @@ void gameLoop(GLFWwindow* window) {
     boss.setProiettileModel(modelCubo);
     boss.setAuraShader(bossAuraShader);
     boss.initHealthBar();
+
+
     glm::vec3 bossOffset(0.0f, 0.0f, -10.0f);
     boss.setPos(player.getPos() + bossOffset);
 
@@ -721,7 +766,15 @@ void gameLoop(GLFWwindow* window) {
             boss.render(player, view, projection, healthBarShader);
             drawCrosshair(window);
         }
+        if (sistemaParticelle) {
+            sistemaParticelle->update(deltaTime);
 
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, particellaTexture);
+            particellaShader->use();
+            particellaShader->setInt("particleTexture", 0);
+            sistemaParticelle->render(view, projection);
+        }
         if (player.isGameOver()) {
             giocoTerminato = true;
             vittoria = false;

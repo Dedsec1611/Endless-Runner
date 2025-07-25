@@ -136,6 +136,12 @@
     <None Include="disintegrazione.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="particella.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="particella.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -192,6 +198,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GestoreCollisioni.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SistemaParticelle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -19,8 +19,8 @@ private:
     float tempoUltimoSparo = 0.0f;
     float intervalloSparo = 0.2f;
 
-    float limiteMinX = -4.0f;
-    float limiteMaxX = 4.0f;
+    float limiteMinX = -5.0f;
+    float limiteMaxX = 5.0f;
     // Inclinazione laterale
     float rotazioneLaterale = 0.0f;
 

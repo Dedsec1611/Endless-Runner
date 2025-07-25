@@ -186,6 +186,8 @@
     <None Include="health_bar.vs" />
     <None Include="mirino.fs" />
     <None Include="mirino.vs" />
+    <None Include="particella.fs" />
+    <None Include="particella.vs" />
     <None Include="player.fs" />
     <None Include="player.vs" />
     <None Include="star.fs" />
@@ -225,6 +227,7 @@
     <ClInclude Include="render_text.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="shader_m.h" />
+    <ClInclude Include="SistemaParticelle.h" />
     <ClInclude Include="starfield.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="suono.h" />

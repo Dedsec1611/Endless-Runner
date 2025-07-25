@@ -9,6 +9,7 @@
 #include "shader_m.h"
 #include "model.h"
 #include "proiettile.h"
+#include "SistemaParticelle.h"
 
 class Nemici {
 private:
@@ -30,8 +31,9 @@ private:
     Model* bonusModel = nullptr;
     Shader* bonusShader = nullptr;
     Shader* bonusOutlineShader = nullptr;
+    SistemaParticelle* sistemaParticelle = nullptr;
 
-    int minNemici = 5;
+    int minNemici = 4;
     int maxNemici = 8;
     int maxBonusPerSegmento = 1;
     float areaX = 10.0f;
@@ -52,6 +54,8 @@ public:
     void setBonusModel(Model* model) {
         bonusModel = model;
     }
+    void setSistemaParticelle(SistemaParticelle* ps) { sistemaParticelle = ps; }
+
 
     void init(glm::vec3 position, Shader* s) {
         basePosition = position;
@@ -235,6 +239,7 @@ public:
                         std::cout << "[COLLISIONE] Player ha colpito un nemico!" << std::endl;
                     }
                     n.vivo = false;
+                    if (sistemaParticelle) sistemaParticelle->emit(n.position);
                     proiettile.eliminaInPos(i);
                     break;
                 }
