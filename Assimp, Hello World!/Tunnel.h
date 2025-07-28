@@ -20,6 +20,8 @@ struct TunnelSegment {
 
 class Tunnel {
 public:
+    int livelloCorrente = 1;
+public:
     SistemaParticelle* particleSystem = nullptr;
 public:
     std::vector<TunnelSegment> segments;
@@ -64,7 +66,7 @@ public:
              segment.nemici.setBonusModel(&modelBonus);
              segment.nemici.setBonusShader(bonusShader);
              segment.nemici.setBonusOutlineShader(bonusOutlineShader);
-             segment.nemici.init(segment.position, nemicoShader);
+             segment.nemici.init(segment.position, nemicoShader, livelloCorrente);
              segment.nemici.setParticleSystem(particleSystem);
 
              segments.push_back(segment);
@@ -143,7 +145,7 @@ public:
             segment.nemici.setBonusModel(&modelBonus);
             segment.nemici.setBonusShader(bonusShader);
             segment.nemici.setBonusOutlineShader(bonusOutlineShader);
-            segment.nemici.init(segment.position, nemicoShader);
+            segment.nemici.init(segment.position, nemicoShader, livelloCorrente);
             segment.nemici.setSistemaParticelle(particleSystem);
 
             segments.push_back(segment);

@@ -245,7 +245,7 @@ void beginHDRRender() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void endHDRRender(Shader& shaderBloomFinal, Shader& shaderBlur ) {
+void endHDRRender(Shader& shaderBloomFinal, Shader& shaderBlur) {
     renderBlur(shaderBlur, 10);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -479,6 +479,8 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
 
 
 
+int livelloCorrente = 1;
+
 int main() {
     glfwInit();
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
@@ -503,6 +505,7 @@ int main() {
     }
     setupHDRBloom(SCR_WIDTH, SCR_HEIGHT);
 
+
     while (!glfwWindowShouldClose(window)) {
         giocoTerminato = false;
         vittoria = false;
@@ -512,10 +515,26 @@ int main() {
         timerTransizioneBoss = 0.0f;
         timerNemici = 0.0f;
         nemiciAttivi = false;
+
+        // Scala difficoltà
+        tempoBoss = 10.0f + livelloCorrente * 5.0f;
+        intervalloGenerazioneNemici = std::max(1.0f, 3.0f - 0.2f * livelloCorrente);
+
         player = Player();
         boss = Boss();
+        tunnel.livelloCorrente = livelloCorrente;
+        tunnel.init();
+
         gameLoop(window);
+
+        if (vittoria) {
+            livelloCorrente++;
+        }
+        else {
+            livelloCorrente = 1;
+        }
     }
+
 
     if (shaderProgram) delete shaderProgram;
     if (backgroundShader) delete backgroundShader;
@@ -545,8 +564,8 @@ void gameLoop(GLFWwindow* window) {
     Shader bossAuraShader("aura.vs", "aura.fs");
     Shader bonusShader("bonus.vs", "bonus.fs");
     Shader bonusOutlineShader("bonus_outline.vs", "bonus_outline.fs");
-    disintegrationShader =  Shader("disintegrazione.vs", "disintegrazione.fs");
-   
+    disintegrationShader = Shader("disintegrazione.vs", "disintegrazione.fs");
+
     glActiveTexture(GL_TEXTURE0);
 
     alienoShader = Shader("alieno.vs", "alieno.fs");
@@ -626,7 +645,7 @@ void gameLoop(GLFWwindow* window) {
         lastFrame = currentFrame;
 
         glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
-       // glClear(GL_COLOR_BUFFER_BIT);
+        // glClear(GL_COLOR_BUFFER_BIT);
         beginHDRRender();
         glDisable(GL_DEPTH_TEST);
 
@@ -657,7 +676,7 @@ void gameLoop(GLFWwindow* window) {
         lastFrame = currentFrame;
 
         tempoGioco += deltaTime;
-       
+
         if (!faseBoss && tempoGioco >= tempoBoss) {
             faseBoss = true;
             transizioneBossAttiva = true;
@@ -738,7 +757,7 @@ void gameLoop(GLFWwindow* window) {
             player.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f * deltaTime));
             bonusShader.setFloat("time", glfwGetTime());
             tunnel.update(deltaTime, player.getPos().z);
-            tunnel.draw(*shaderProgram, view, projection, proiettileNavicella, proiettileNavicella, player,giocoTerminato, nemiciAttivi);
+            tunnel.draw(*shaderProgram, view, projection, proiettileNavicella, proiettileNavicella, player, giocoTerminato, nemiciAttivi);
             for (auto* nemici : tunnel.getTuttiINemici()) {
                 GestoreCollisioni::gestisciCollisioneConNemici(*nemici, player, nemiciAttivi, giocoTerminato);
             }
@@ -761,7 +780,7 @@ void gameLoop(GLFWwindow* window) {
             player.aggiornaInvincibilita(10.0f);
             boss.aggiorna(deltaTime, glfwGetTime());
             boss.checkIsHitted(proiettileNavicella);
-           // boss.checkIsHitted(proiettileSpeciale, esplosione);
+            // boss.checkIsHitted(proiettileSpeciale, esplosione);
             boss.checkCollisionPlayer(player, giocoTerminato);
             boss.render(player, view, projection, healthBarShader);
             drawCrosshair(window);
@@ -796,9 +815,9 @@ void gameLoop(GLFWwindow* window) {
     glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
     beginHDRRender();
     glDisable(GL_DEPTH_TEST);
-   
+
     std::string messaggio = vittoria ? "HAI VINTO!" : "HAI PERSO!";
-    RenderText(messaggio, SCR_WIDTH / 2.0f - 100.0f, SCR_HEIGHT / 2.0f, 1.0f, glm::vec3(1.0f, 0.5f, 0.0f));
+    RenderText(messaggio + " - Livello " + std::to_string(livelloCorrente), SCR_WIDTH / 2.0f - 150.0f, SCR_HEIGHT / 2.0f, 1.0f, glm::vec3(1.0f, 0.5f, 0.0f));
     RenderText("Premi SPAZIO per tornare al menu", SCR_WIDTH / 2.0f - 180.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.5f, glm::vec3(1.0f));
     endHDRRender(shaderBloomFinal, shaderBlur);
 

@@ -57,7 +57,7 @@ public:
     void setSistemaParticelle(SistemaParticelle* ps) { sistemaParticelle = ps; }
 
 
-    void init(glm::vec3 position, Shader* s) {
+    void init(glm::vec3 position, Shader* s, int livello = 1) {
         basePosition = position;
         shader = s;
         nemici.clear();
@@ -97,7 +97,7 @@ public:
 
             n.baseX = nuovaPosizione.x;
             n.position = nuovaPosizione;
-            n.speed = minSpeed + static_cast<float>(rand()) / RAND_MAX * (maxSpeed - minSpeed);
+            n.speed = minSpeed + static_cast<float>(rand()) / RAND_MAX * (maxSpeed - minSpeed) + livello * 0.2f;
             n.vivo = true;
             n.isBonus = false;
             n.animationTime = 0.0f;
@@ -113,14 +113,14 @@ public:
             nemici.push_back(n);
             creati++;
         }
-        
+
         if (creati == numNemici && bonusCount == 0 && maxBonusPerSegmento > 0 && !nemici.empty()) {
             nemici.back().isBonus = true;
             std::cout << "[BONUS] Bonus forzato sul nemico finale del segmento\n";
             bonusCount++;
         }
 
-    
+
         std::cout << "[INIT] Nemici: " << creati << ", Bonus: " << bonusCount << "\n";
     }
 
@@ -154,7 +154,7 @@ public:
 
             glm::mat4 modelMatrix = glm::mat4(1.0f);
             modelMatrix = glm::translate(modelMatrix, n.position);
-            
+
             // Animazione dinamica: scala pulsante e leggera rotazione
             float scale = n.isBonus ? 0.01f : 0.25f + 0.05f * std::sin(n.animationTime * 2.0f);
             modelMatrix = glm::scale(modelMatrix, glm::vec3(scale));
@@ -195,7 +195,7 @@ public:
         }
     }
 
-//TODO creazione esplosione
+    //TODO creazione esplosione
     void checkCollisionWithPlayer(Player& player, Proiettile& proiettile, bool& giocoTerminato, bool& nemiciAttivi) {
         for (auto& n : nemici) {
             if (!n.vivo) continue;
@@ -207,7 +207,7 @@ public:
                 if (n.isBonus && !player.haBonusSparo()) {
                     player.abilitaSparoTemporaneo(5.0f);
                 }
-                
+
                 else {
                     if (!nemiciAttivi || player.isInvincibile()) return;
                     std::cout << "[COLLISIONE] Player ha impattato un nemico (non bonus)!" << std::endl;
