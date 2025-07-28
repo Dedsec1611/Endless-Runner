@@ -105,9 +105,13 @@ public:
 
             posizioniOccupate.push_back(n.position);
 
-            if (bonusCount < maxBonusPerSegmento && (std::rand() % 100) < 20) {
+            if (bonusCount < maxBonusPerSegmento && (std::rand() % 100) < 10) {
                 n.isBonus = true;
                 bonusCount++;
+                float offsetX = glm::linearRand(-3.0f, 3.0f);
+                n.baseX = offsetX;
+                n.position = glm::vec3(n.baseX, nuovaPosizione.y, nuovaPosizione.z);
+
             }
 
             nemici.push_back(n);

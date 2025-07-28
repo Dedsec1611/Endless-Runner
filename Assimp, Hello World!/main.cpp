@@ -102,7 +102,10 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* starShader, Suono& suono);
 void gameLoop(GLFWwindow* window);
 
-
+float approxTextWidth(const std::string& text, float scale) {
+    const float charWidth = 50.0f;
+    return text.length() * charWidth * scale;
+}
 
 GLuint loadParticleTexture(const char* path) {
     GLuint textureID;
@@ -847,9 +850,15 @@ void gameLoop(GLFWwindow* window) {
     glDisable(GL_DEPTH_TEST);
 
     std::string messaggio = vittoria ? "HAI VINTO!" : "HAI PERSO!";
-    RenderText(messaggio + " - Livello " + std::to_string(livelloCorrente), SCR_WIDTH / 2.0f - 150.0f, SCR_HEIGHT / 2.0f, 1.0f, glm::vec3(1.0f, 0.5f, 0.0f));
-    RenderText("Premi SPAZIO per tornare al menu", SCR_WIDTH / 2.0f - 180.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.5f, glm::vec3(1.0f));
-    endHDRRender(shaderBloomFinal, shaderBlur);
+    std::string messaggioFinale = messaggio + " - Livello " + std::to_string(livelloCorrente);
+    float scale1 = 1.0f;
+    float width1 = approxTextWidth(messaggioFinale, scale1);
+    RenderText(messaggioFinale, SCR_WIDTH / 2.0f - width1 / 2.0f, SCR_HEIGHT / 2.0f, scale1, glm::vec3(1.0f, 0.5f, 0.0f));
+
+    std::string testoIstruzione = "Premi SPAZIO per tornare al menu";
+    float scale2 = 0.5f;
+    float width2 = approxTextWidth(testoIstruzione, scale2);
+    RenderText(testoIstruzione, SCR_WIDTH / 2.0f - width2 / 2.0f, SCR_HEIGHT / 2.0f - 50.0f, scale2, glm::vec3(1.0f)); endHDRRender(shaderBloomFinal, shaderBlur);
 
     glfwSwapBuffers(window);
     while (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !glfwWindowShouldClose(window)) {
@@ -865,3 +874,4 @@ void gameLoop(GLFWwindow* window) {
         }
     }
 }
+
