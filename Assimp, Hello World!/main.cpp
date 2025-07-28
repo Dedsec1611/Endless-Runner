@@ -504,6 +504,36 @@ int main() {
         return -1;
     }
     setupHDRBloom(SCR_WIDTH, SCR_HEIGHT);
+    // Inizializzazione shader e modelli prima di gameLoop
+    shaderProgram = new Shader("basic.vs", "basic.fs");
+    backgroundShader = new Shader("background.vs", "background.fs");
+    starShader = new Shader("star.vs", "star.fs");
+
+    if (!shaderProgram || !shaderProgram->ID || !backgroundShader || !backgroundShader->ID || !starShader || !starShader->ID) {
+        std::cerr << "[ERRORE] Shader principali non validi." << std::endl;
+        return -1;
+    }
+
+    background = new Background(backgroundShader);
+
+    Model modelNavicella("../src/models/navicella/navicella.obj");
+    modelAlieno1 = Model("../src/models/alieni/alieno1/alieno1.obj");
+    modelAlieno2 = Model("../src/models/alieni/alieno2/alieno2.obj");
+    modelAlieno3 = Model("../src/models/alieni/alieno3/alieno3.obj");
+    modelCubo = Model("../src/models/cubo.obj");
+    modelBonus = Model("../src/models/armabonus/Flamethrower without armor.obj");
+    modelBoss = Model("../src/models/enemy/enemy.obj");
+
+    std::vector<Model> modelliNemici = {
+        modelAlieno1,
+        modelAlieno2,
+        modelAlieno3
+    };
+
+    tunnel.setModelliNemici(modelliNemici);
+    tunnel.nemicoShader = &alienoShader;
+    tunnel.modelBonus = modelBonus;
+
 
 
     while (!glfwWindowShouldClose(window)) {
@@ -516,7 +546,7 @@ int main() {
         timerNemici = 0.0f;
         nemiciAttivi = false;
 
-        // Scala difficoltà
+        // Scala difficolt?
         tempoBoss = 10.0f + livelloCorrente * 5.0f;
         intervalloGenerazioneNemici = std::max(1.0f, 3.0f - 0.2f * livelloCorrente);
 
