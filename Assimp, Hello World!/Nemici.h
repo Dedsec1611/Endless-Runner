@@ -111,7 +111,6 @@ public:
                 float offsetX = glm::linearRand(-3.0f, 3.0f);
                 n.baseX = offsetX;
                 n.position = glm::vec3(n.baseX, nuovaPosizione.y, nuovaPosizione.z);
-
             }
 
             nemici.push_back(n);

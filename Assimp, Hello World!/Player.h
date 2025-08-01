@@ -209,12 +209,6 @@ public:
         spazioPremutoPrima = false;
     }
 
-
-    void inizializzaProiettileSpeciale(Proiettile& p, int livello) {
-        p.setIsSpeciale(true);
-        p.inizializzaPos(posizione + glm::vec3(0.0f, 0.0f, -1.0f), puoSparare);
-        p.inizializzaDir(glm::vec3(0.0f, 0.0f, -1.0f));
-    }
     void subisciDanno() {
         if (!invincibile && vite > 0) {
             vite--;

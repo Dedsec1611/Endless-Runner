@@ -196,8 +196,7 @@ public:
         barShader.setMat4("view", view);
         barShader.setMat4("projection", projection);
 
-        glDisable(GL_DEPTH_TEST); // non vogliamo che sia coperta
-
+        glDisable(GL_DEPTH_TEST); 
         glBindVertexArray(healthBarVAO);
 
         // Bordo
@@ -239,14 +238,7 @@ public:
             float raggio = 3.5f; // raggio della hitbox del boss, adatta se necessario
 
             if (distanza2 <= raggio * raggio) {
-
-                if (proiettile.getIsSpeciale()) {
-                    hit(15.0f);
-                }
-                else {
-                    hit(1.0f);
-                }
-               
+                hit(1.0f);
                 proiettile.eliminaInPos(i); 
                 std::cout << "[BOSS] Colpito! HP: " << health << std::endl;
                 break;

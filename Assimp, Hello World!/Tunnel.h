@@ -50,86 +50,6 @@ public:
         modelliNemici = modelli;
     }
 
-    /* void init() {
-
-         maxSegments = 20;
-
-         segments.clear(); // Pulisce eventuali segmenti precedenti
-
-         float distanzaIniziale = 40.0f; // distanza dalla navicella iniziale
-         for (int i = 0; i < maxSegments; ++i) {
-             TunnelSegment segment;
-             segment.position = glm::vec3(0.0f, 0.0f, -i * segmentLength - distanzaIniziale);
-             segment.length = segmentLength;
-
-             segment.nemici.setModelliNemici(modelliNemici);
-             segment.nemici.setBonusModel(&modelBonus);
-             segment.nemici.setBonusShader(bonusShader);
-             segment.nemici.setBonusOutlineShader(bonusOutlineShader);
-             segment.nemici.init(segment.position, nemicoShader, livelloCorrente);
-             segment.nemici.setParticleSystem(particleSystem);
-
-             segments.push_back(segment);
-         }
-
-         // Inizializza la geometria del tunnel
-         float planeVertices[] = {
-             -1.0f, 0.0f,  0.0f,
-              1.0f, 0.0f,  0.0f,
-              1.0f, 0.0f, -1.0f,
-             -1.0f, 0.0f,  0.0f,
-              1.0f, 0.0f, -1.0f,
-             -1.0f, 0.0f, -1.0f
-         };
-
-         glGenVertexArrays(1, &cubeVAO);
-         glGenBuffers(1, &cubeVBO);
-         glBindVertexArray(cubeVAO);
-         glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-         glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
-         glEnableVertexAttribArray(0);
-         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-         glBindVertexArray(0);
-
-         // Carica texture di sfondo
-         backgroundTextures.clear();
-         loadBackgroundTexture("../src/images/scenario1.png");
-         loadBackgroundTexture("../src/images/background.png");
-         loadBackgroundTexture("../src/images/scenario1.png");
-     }
-
-
-     void update(float deltaTime, float playerZ) {
-         scenarioTimer += deltaTime;
-
-
-         if (scenarioTimer >= scenarioDuration) {
-             currentScenario = (currentScenario + 1) % backgroundTextures.size();
-             scenarioTimer = 0.0f;
-         }
-
-         float cooldownRigenerazione = 2.0f; //rigenerazione
-         float distanzaMassima = 50.0f;
-         for (auto& seg : segments) {
-
-             seg.nemici.update(deltaTime);
-
-             seg.tempoUltimaRigenerazione += deltaTime;
-
-             if (seg.position.z - segmentLength > playerZ + distanzaMassima &&
-                 seg.tempoUltimaRigenerazione >= cooldownRigenerazione) {
-
-                 seg.position.z -= segmentLength * (maxSegments + 0.75f);
-                 seg.nemici.setModelliNemici(modelliNemici);
-                 seg.nemici.setBonusModel(&modelBonus);
-                 seg.nemici.setBonusShader(bonusShader);
-                 seg.nemici.setBonusOutlineShader(bonusOutlineShader);
-                 seg.nemici.init(seg.position, nemicoShader);
-                 seg.tempoUltimaRigenerazione = 0.0f;
-             }
-         }
-
-     }*/
     void init() {
         maxSegments = 50;  // Copre 100 secondi di gioco
 
@@ -204,7 +124,6 @@ public:
             seg.nemici.checkCollision(proiettile, player);
             seg.nemici.checkCollision(proiettileSpeciale, player);
             seg.nemici.checkCollisionWithPlayer(player, proiettile, giocoTerminato, nemiciAttivi);
-            // GestoreCollisioni::gestisciCollisioneConNemici(seg.nemici, player, nemiciAttivi, giocoTerminato);
         }
         glBindVertexArray(0);
     }

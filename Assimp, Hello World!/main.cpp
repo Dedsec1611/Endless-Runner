@@ -139,10 +139,6 @@ void initParticleSystem(SistemaParticelle*& system, Shader*& particleShader, GLu
 }
 
 
-
-
-
-
 void renderQuad() {
     if (quadVAO == 0) {
         float quadVertices[] = {
@@ -478,10 +474,6 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
     }
 }
 
-
-
-
-
 int livelloCorrente = 1;
 
 int main() {
@@ -549,7 +541,7 @@ int main() {
         timerNemici = 0.0f;
         nemiciAttivi = false;
 
-        // Scala difficolt?
+        // Scala difficoltà
         tempoBoss = 10.0f + livelloCorrente * 5.0f;
         intervalloGenerazioneNemici = std::max(1.0f, 3.0f - 0.2f * livelloCorrente);
 
