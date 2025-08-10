@@ -1,12 +1,15 @@
 #version 330 core
+in  vec2 TexCoords;
 out vec4 FragColor;
 
-in vec2 TexCoords;
+uniform sampler2D particellaTexture;
 
-uniform vec4 color;
-uniform sampler2D particleTexture;
-
-void main() {
-    vec4 texColor = texture(particleTexture, TexCoords);
-    FragColor = color * texColor;
+void main()
+{
+    // campiona la texture di esplosione
+    vec4 col = texture(particellaTexture, TexCoords);
+    // scarta i frammenti trasparenti
+    if (col.a < 0.1)
+        discard;
+    FragColor = col;
 }

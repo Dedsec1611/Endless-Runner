@@ -1,22 +1,41 @@
 #version 330 core
-out vec4 FragColor;
-in vec2 TexCoords;
 
-uniform sampler2D texture_diffuse1; // caricata da Model
-uniform float time;
+in vec2 TexCoords;
+in vec3 FragPos;
+in vec3 Normal;
+
+out vec4 FragColor;
+
+struct Material {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+};
+struct Light {
+    vec3 position;
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
+uniform Material material;
+uniform Light light;
+uniform vec3 viewPos;
+uniform sampler2D texture_diffuse1;
 
 void main()
 {
-vec4 texColor = texture(texture_diffuse1, TexCoords);
-float glow = abs(sin(time * 2.0));
-
-// amplifica la luminosità: effetto "faro"
-vec3 brightColor = texColor.rgb * vec3(2.5, 2.2, 1.0); // più dorato
-
-// clamp per evitare overflow se superiamo 1.0
-brightColor = clamp(brightColor, 0.0, 1.0);
-
-// combinazione finale
-FragColor = vec4(brightColor * glow, texColor.a);
-
+    vec3 color   = texture(texture_diffuse1, TexCoords).rgb;
+    vec3 ambient = light.ambient * material.ambient;
+    vec3 norm     = normalize(Normal);
+    vec3 lightDir = normalize(light.position - FragPos);
+    float diff    = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse  = light.diffuse * (diff * material.diffuse);
+    vec3 viewDir    = normalize(viewPos - FragPos);
+    vec3 reflectDir = reflect(-lightDir, norm);
+    float spec      = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    vec3 specular   = light.specular * (spec * material.specular);
+    vec3 result     = ambient + diffuse + specular;
+    FragColor       = vec4(result * color, 1.0);
 }

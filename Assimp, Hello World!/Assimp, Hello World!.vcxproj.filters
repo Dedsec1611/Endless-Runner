@@ -142,6 +142,33 @@
     <None Include="particella.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="skybox.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="skybox.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="starfield.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="unlit_color.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="unlit_texture.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="wall.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="wall.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="menu_bg.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="menu_bg.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -149,6 +176,9 @@
     </ClCompile>
     <ClCompile Include="glad.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="skybox.cpp">
+      <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -201,6 +231,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SistemaParticelle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="skybox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

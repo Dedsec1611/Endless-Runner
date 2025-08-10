@@ -119,27 +119,47 @@ public:
 
     
 
-        // Disegna boss
         shader.use();
-        glm::mat4 modelMat = glm::translate(glm::mat4(1.0f), pos);
-        modelMat = glm::translate(modelMat, glm::vec3(0.0f, -5.0f, 0.0f));
-        modelMat = glm::scale(modelMat, glm::vec3(5.0f));
+		glm::mat4 modelMat = glm::mat4(1.0f);
         shader.setMat4("model", modelMat);
         shader.setMat4("view", view);
         shader.setMat4("projection", projection);
+        // ─── ILUMINAZIONE PHONG ────────────────────────────────────────────
+        glm::vec3 lightPos(0.0f, 10.0f, player.getPos().z + 10.0f);
+        shader.setVec3("viewPos", player.getPos());
+        shader.setVec3("light.position", lightPos);
+        shader.setVec3("light.ambient", glm::vec3(0.1f));
+        shader.setVec3("light.diffuse", glm::vec3(0.8f));
+        shader.setVec3("light.specular", glm::vec3(1.0f));
+        shader.setVec3("material.ambient", glm::vec3(0.6f, 0.2f, 0.2f));
+        shader.setVec3("material.diffuse", glm::vec3(0.6f, 0.2f, 0.2f));
+        shader.setVec3("material.specular", glm::vec3(0.7f, 0.7f, 0.7f));
+        shader.setFloat("material.shininess", 32.0f);
+        // ─────────────────────────────────────────────────────────────────────
         model.Draw(shader);
+
 
         // Aura rossa dietro al boss
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         auraShader.use();
-        glm::mat4 auraMat = glm::translate(glm::mat4(1.0f), pos + glm::vec3(0.0f, -5.0f, -0.1f));
-        auraMat = glm::scale(auraMat, glm::vec3(5.0f));
+		glm::mat4 auraMat = glm::mat4(1.0f);
         auraShader.setMat4("model", auraMat);
         auraShader.setMat4("view", view);
         auraShader.setMat4("projection", projection);
-        auraShader.setVec3("auraColor", glm::vec3(1.0f, 0.0f, 0.0f));
+        // ─── ILUMINAZIONE PHONG (stessi valori) ────────────────────────────
+        auraShader.setVec3("viewPos", player.getPos());
+        auraShader.setVec3("light.position", lightPos);
+        auraShader.setVec3("light.ambient", glm::vec3(0.1f));
+        auraShader.setVec3("light.diffuse", glm::vec3(0.8f));
+        auraShader.setVec3("light.specular", glm::vec3(1.0f));
+        auraShader.setVec3("material.ambient", glm::vec3(0.6f, 0.2f, 0.2f));
+        auraShader.setVec3("material.diffuse", glm::vec3(0.6f, 0.2f, 0.2f));
+        auraShader.setVec3("material.specular", glm::vec3(0.7f, 0.7f, 0.7f));
+        auraShader.setFloat("material.shininess", 32.0f);
+        // ─────────────────────────────────────────────────────────────────────
         model.Draw(auraShader);
+
         glDisable(GL_BLEND);
         // Proiettili
         proiettileShader.use();

@@ -1,180 +1,298 @@
+﻿
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <irrKlang/irrKlang.h>
+
 #include "render_text.h"
 #include "shader_m.h"
 #include "camera.h"
 #include "model.h"
+#include "skybox.h"
 
 #include <iostream>
+#include <vector>
+#include <chrono>
+#include <thread>
 #include <random>
 #include <cmath>
 #include <stack>
-#include <vector>
-#include <thread>
-#include <chrono>
+#include <unordered_set>
 
-#pragma comment(lib, "irrKlang.lib")
 
 #include "proiettile.h"
 #include "suono.h"
 #include "Boss.h"
 #include "starfield.h"
-
 #include "Player.h"
 #include "Tunnel.h"
 #include "Background.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#pragma comment(lib, "irrKlang.lib")
+
+// ========== COSTANTI & VARIABILI GLOBALI ==========
+unsigned int SCR_WIDTH;
+unsigned int SCR_HEIGHT;
 
 unsigned int hdrFBO;
 unsigned int colorBuffers[2];
 unsigned int pingpongFBO[2];
 unsigned int pingpongColorbuffers[2];
+
 unsigned int quadVAO = 0, quadVBO;
+unsigned int wallVAO, wallVBO;
+unsigned int cubeVAO = 0, cubeVBO = 0;
 
-unsigned int SCR_WIDTH;
-unsigned int SCR_HEIGHT;
+unsigned int crosshairVAO = 0, crosshairVBO = 0, crosshairTexture = 0;
 
+// Controllo gioco
 bool giocoTerminato = false;
 bool vittoria = false;
 bool nemiciAttivi = false;
 bool faseBoss = false;
 bool transizioneBossAttiva = false;
 
+// Timer
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 float tempoAvvioNemici = 3.0f;
 float timerNemici = 0.0f;
 float tempoGioco = 0.0f;
-float tempoUltimaGenerazione = 0.0f;
-float intervalloGenerazioneNemici = 3.0f; // ogni 6 secondi
+float intervalloGenerazioneNemici = 3.0f;
 float tempoBoss = 10.0f;
 float timerTransizioneBoss = 0.0f;
 float tempoTransizioneBoss = 2.0f;
 
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
-
+// Oggetti globali
 Tunnel tunnel;
 Player player;
+Boss boss;
+Suono suono;
 Background* background = nullptr;
-Shader* backgroundShader = nullptr;
 
 Shader* shaderProgram = nullptr;
-Shader alienoShader;
-Model modelAlieno1;
-Model modelAlieno2;
-Model modelAlieno3;
+Shader* backgroundShader = nullptr;
+Shader* starShader = nullptr;
+Shader* crosshairShader = nullptr;
+Shader* particellaShader = nullptr;
+Shader* skyboxShader = nullptr;
+Skybox* skybox = nullptr;
+Shader* menuBgShader = nullptr;
 
-Proiettile proiettileNavicella;
+
+Shader alienoShader;
 Shader proiettileShader;
-Proiettile proiettileBoss;
 Shader disintegrationShader;
+Shader bossBarShader;
+Shader healthBarShader;
+Shader shaderBlur;
+Shader shaderBloomFinal;
 
 Model modelCubo;
 Model modelBonus;
 Model modelBoss;
+Model modelAlieno1, modelAlieno2, modelAlieno3;
 
-Suono suono;
-
-Boss boss;
-Shader bossBarShader;
-Shader healthBarShader;
-
-unsigned int crosshairVAO = 0, crosshairVBO = 0, crosshairTexture = 0;
-Shader* crosshairShader = nullptr;
-Shader* starShader = nullptr;
-
-Shader shaderBlur;
-Shader shaderBloomFinal;
+Proiettile proiettileNavicella;
+Proiettile proiettileBoss;
 
 SistemaParticelle* sistemaParticelle = nullptr;
-Shader* particellaShader = nullptr;
 GLuint particellaTexture = 0;
 
 Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
+int livelloCorrente = 1;
+
+// ========== DICHIARAZIONI FUNZIONI ==========
 void initCrosshair();
 void drawCrosshair(GLFWwindow* window);
 void processInput(GLFWwindow* window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* starShader, Suono& suono);
 void gameLoop(GLFWwindow* window);
+void setupHDRBloom(int width, int height);
+void renderQuad();
+void beginHDRRender();
+void endHDRRender(Shader& bloomFinal, Shader& blur);
+GLuint loadParticleTexture(const char* path);
+void initParticleSystem(SistemaParticelle*& system, Shader*& particleShader, GLuint& textureID);
 
+int main() {
+    // Inizializzazione GLFW
+    glfwInit();
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    SCR_WIDTH = mode->width;
+    SCR_HEIGHT = mode->height;
 
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-GLuint loadParticleTexture(const char* path) {
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-    int width, height, nrChannels;
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
-
-    if (data) {
-        GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // Finestra full screen
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Endless Runner", monitor, nullptr);
+    if (!window) {
+        std::cerr << "[ERRORE] Creazione finestra fallita." << std::endl;
+        glfwTerminate();
+        return -1;
     }
-    else {
-        std::cerr << "[ERRORE] Caricamento texture particellare fallito!" << std::endl;
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    // Inizializzazione GLAD
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cerr << "[ERRORE] Impossibile inizializzare GLAD." << std::endl;
+        return -1;
     }
 
-    stbi_image_free(data);
-    return textureID;
+    glEnable(GL_PROGRAM_POINT_SIZE);
+
+    // Inizializzazione HDR + effetto bloom
+    setupHDRBloom(SCR_WIDTH, SCR_HEIGHT);
+
+    // Inizializzazione muri laterali (VAO/VBO)
+    float wallVertices[] = {
+        // x, y, z, norm.x, norm.y, norm.z
+         1.0f,  1.0f,  0.0f,  1.0f, 0.0f, 0.0f,
+         1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f,
+         1.0f,  0.0f, -1.0f,  1.0f, 0.0f, 0.0f,
+         1.0f,  1.0f,  0.0f,  1.0f, 0.0f, 0.0f,
+         1.0f,  0.0f, -1.0f,  1.0f, 0.0f, 0.0f,
+         1.0f,  1.0f, -1.0f,  1.0f, 0.0f, 0.0f
+    };
+    glGenVertexArrays(1, &wallVAO);
+    glGenBuffers(1, &wallVBO);
+    glBindVertexArray(wallVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, wallVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(wallVertices), wallVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    // Shader di base
+    shaderProgram = new Shader("basic.vs", "basic.fs");
+    backgroundShader = new Shader("background.vs", "background.fs");
+    starShader = new Shader("star.vs", "starfield.fs");
+    if (!shaderProgram->ID || !backgroundShader->ID || !starShader->ID) {
+        std::cerr << "[ERRORE] Shader principali non validi." << std::endl;
+        return -1;
+    }
+    // --- SKYBOX (init una volta) ---
+    skyboxShader = new Shader("skybox.vs", "skybox.fs");
+    //menushader
+    menuBgShader = new Shader("menu_bg.vs", "menu_bg.fs");
+
+
+    // Usa l'estensione reale dei tuoi file: .png / .jpg ecc.
+    std::vector<std::string> faces = {
+        "../src/images/blue/right.png",
+        "../src/images/blue/left.png",
+        "../src/images/blue/top.png",
+        "../src/images/blue/bot.png",
+        "../src/images/blue/front.png",
+        "../src/images/blue/back.png"
+    };
+    skybox = new Skybox(faces);
+
+    background = new Background(backgroundShader);
+
+    // Modelli
+    modelAlieno1 = Model("../src/models/alieni/alieno1/alieno1.obj");
+    modelAlieno2 = Model("../src/models/alieni/alieno2/alieno2.obj");
+    modelAlieno3 = Model("../src/models/alieni/alieno3/alieno3.obj");
+    modelCubo = Model("../src/models/cubo.obj");
+    modelBonus = Model("../src/models/armabonus/Flamethrower without armor.obj");
+    modelBoss = Model("../src/models/enemy/enemy.obj");
+
+    std::vector<Model> modelliNemici = { modelAlieno1, modelAlieno2, modelAlieno3 };
+    tunnel.setModelliNemici(modelliNemici);
+    tunnel.nemicoShader = &alienoShader;
+    tunnel.modelBonus = modelBonus;
+
+    // Loop dei livelli (infinite run)
+    while (!glfwWindowShouldClose(window)) {
+        // Reset stato
+        giocoTerminato = false;
+        vittoria = false;
+        faseBoss = false;
+        transizioneBossAttiva = false;
+        tempoGioco = 0.0f;
+        timerTransizioneBoss = 0.0f;
+        timerNemici = 0.0f;
+        nemiciAttivi = false;
+
+        // Aumento difficoltà progressiva
+        tempoBoss = 10.0f + livelloCorrente * 5.0f;
+        intervalloGenerazioneNemici = std::max(1.0f, 3.0f - 0.2f * livelloCorrente);
+
+        // Reinstanzia player/boss/tunnel
+        player = Player();
+        boss = Boss();
+        tunnel.livelloCorrente = livelloCorrente;
+        tunnel.init();
+
+        // Avvia loop principale
+        gameLoop(window);
+
+        // Avanzamento livello
+        if (vittoria)
+            livelloCorrente++;
+        else
+            livelloCorrente = 1;
+    }
+
+    // Cleanup
+    delete shaderProgram;
+    delete backgroundShader;
+    delete starShader;
+    delete background;
+
+    glfwTerminate();
+    return 0;
 }
-void initParticleSystem(SistemaParticelle*& system, Shader*& particleShader, GLuint& textureID) {
-    system = new SistemaParticelle(200);
-    particleShader = new Shader("particella.vs", "particella.fs");
-    system->setShader(particleShader);
-    textureID = loadParticleTexture("../src/images/esplosione.png");
-}
-
-
-
-
-
 
 void renderQuad() {
     if (quadVAO == 0) {
         float quadVertices[] = {
-            // pos        // tex
+            // positions   // texCoords
             -1.0f,  1.0f, 0.0f, 1.0f,
             -1.0f, -1.0f, 0.0f, 0.0f,
              1.0f, -1.0f, 1.0f, 0.0f,
-
             -1.0f,  1.0f, 0.0f, 1.0f,
              1.0f, -1.0f, 1.0f, 0.0f,
              1.0f,  1.0f, 1.0f, 1.0f
         };
+
         glGenVertexArrays(1, &quadVAO);
         glGenBuffers(1, &quadVBO);
         glBindVertexArray(quadVAO);
         glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     }
+
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
-
 void setupHDRBloom(int width, int height) {
     glGenFramebuffers(1, &hdrFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
 
     glGenTextures(2, colorBuffers);
-    for (unsigned int i = 0; i < 2; i++) {
+    for (unsigned int i = 0; i < 2; ++i) {
         glBindTexture(GL_TEXTURE_2D, colorBuffers[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -192,16 +310,17 @@ void setupHDRBloom(int width, int height) {
     glDrawBuffers(2, attachments);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cout << "[ERRORE] HDR framebuffer incompleto." << std::endl;
+        std::cerr << "[ERRORE] HDR framebuffer incompleto!" << std::endl;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    // Ping-pong FBO per blur
     glGenFramebuffers(2, pingpongFBO);
     glGenTextures(2, pingpongColorbuffers);
-    for (unsigned int i = 0; i < 2; i++) {
+    for (unsigned int i = 0; i < 2; ++i) {
         glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
         glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -209,15 +328,16 @@ void setupHDRBloom(int width, int height) {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpongColorbuffers[i], 0);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-            std::cout << "[ERRORE] pingpong framebuffer incompleto." << std::endl;
+            std::cerr << "[ERRORE] Pingpong framebuffer incompleto!" << std::endl;
     }
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-
 void renderBlur(Shader& blurShader, int amount) {
     bool horizontal = true, first_iteration = true;
     blurShader.use();
-    for (unsigned int i = 0; i < amount; i++) {
+
+    for (int i = 0; i < amount; ++i) {
         glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
         blurShader.setInt("horizontal", horizontal);
         glBindTexture(GL_TEXTURE_2D, first_iteration ? colorBuffers[1] : pingpongColorbuffers[!horizontal]);
@@ -225,46 +345,580 @@ void renderBlur(Shader& blurShader, int amount) {
         horizontal = !horizontal;
         if (first_iteration) first_iteration = false;
     }
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void renderHDR(Shader& finalShader, float exposure) {
     finalShader.use();
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[1]);
     finalShader.setInt("scene", 0);
     finalShader.setInt("bloomBlur", 1);
     finalShader.setFloat("exposure", exposure);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[1]);
+
     renderQuad();
 }
-
 void beginHDRRender() {
     glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void endHDRRender(Shader& shaderBloomFinal, Shader& shaderBlur) {
-    renderBlur(shaderBlur, 10);
+void endHDRRender(Shader& bloomFinal, Shader& blur) {
+    renderBlur(blur, 10);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    renderHDR(shaderBloomFinal, 0.1f);
+    renderHDR(bloomFinal, 0.1f);
+}
+GLuint loadParticleTexture(const char* path) {
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrChannels;
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
+
+    if (data) {
+        GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+    else {
+        std::cerr << "[ERRORE] Caricamento texture particellare fallito!" << std::endl;
+    }
+
+    stbi_image_free(data);
+    return textureID;
 }
 
-//TODO creazione delle esplosioni quando un nemico viene colpito
+void initParticleSystem(SistemaParticelle*& system, Shader*& particleShader, GLuint& textureID) {
+    system = new SistemaParticelle(200);
+    particleShader = new Shader("particella.vs", "particella.fs");
+    system->setShader(particleShader);
+    textureID = loadParticleTexture("../src/images/esplosione.png");
+}
+void gameLoop(GLFWwindow* window) {
+    glEnable(GL_DEPTH_TEST);
+    initRenderText(SCR_WIDTH, SCR_HEIGHT);
+    std::unordered_set<const void*> nemiciEsplosiUnaVolta;
+
+    // 🔧 view e projection resi disponibili in tutta la funzione
+    glm::mat4 view;
+    glm::mat4 projection;
+
+
+    // Shader principali
+    Shader playerShader("player.vs", "player.fs");
+    Shader bossAuraShader("aura.vs", "aura.fs");
+    Shader bonusShader("bonus.vs", "bonus.fs");
+    Shader bonusOutlineShader("bonus_outline.vs", "bonus_outline.fs");
+    Shader disintegrationShaderLocal("disintegrazione.vs", "disintegrazione.fs");
+	Shader wallShader("wall.vs", "wall.fs");
+    disintegrationShader = disintegrationShaderLocal;
+
+    alienoShader = Shader("alieno.vs", "alieno.fs");
+    proiettileShader = Shader("proiettile.vs", "unlit_color.fs");
+    bossBarShader = Shader("barriera.vs", "barriera.fs");
+    healthBarShader = Shader("health_bar.vs", "health_bar.fs");
+
+    shaderBlur = Shader("blur.vs", "blur.fs");
+    shaderBloomFinal = Shader("bloom_final.vs", "bloom_final.fs");
+    shaderBlur.use();         shaderBlur.setInt("image", 0);
+    shaderBloomFinal.use();
+    shaderBloomFinal.setFloat("saturation", 1.3f);
+    shaderBloomFinal.setFloat("contrast", 1.0f);
+    shaderBloomFinal.setFloat("brightness", 1.3f);
+    shaderBloomFinal.setFloat("exposure", 0.9f);
+
+    // Skybox
+    //starShader = new Shader("star.vs", "star.fs");
+    Starfield starfield(200, SCR_WIDTH, SCR_HEIGHT);
+    BossStarfield bossStarfield(200, SCR_WIDTH, SCR_HEIGHT);
+
+    // Modelli
+    Model modelNavicella("../src/models/navicella/navicella.obj");
+    modelAlieno1 = Model("../src/models/alieni/alieno1/alieno1.obj");
+    modelAlieno2 = Model("../src/models/alieni/alieno2/alieno2.obj");
+    modelAlieno3 = Model("../src/models/alieni/alieno3/alieno3.obj");
+    modelBonus = Model("../src/models/armabonus/Flamethrower without armor.obj");
+    modelCubo = Model("../src/models/cubo.obj");
+    modelBoss = Model("../src/models/enemy/enemy.obj");
+
+    // Player setup
+    player.setShader(playerShader);
+    player.setModel(modelNavicella);
+
+    // Sistema particellare
+    initParticleSystem(sistemaParticelle, particellaShader, particellaTexture);
+
+    // Tunnel setup
+    std::vector<Model> modelliNemici = { modelAlieno1, modelAlieno2, modelAlieno3 };
+    tunnel.setModelliNemici(modelliNemici);
+    tunnel.nemicoShader = &alienoShader;
+    tunnel.modelBonus = modelBonus;
+    tunnel.bonusShader = &bonusShader;
+    tunnel.bonusOutlineShader = &bonusOutlineShader;
+    tunnel.particleSystem = sistemaParticelle;
+    tunnel.init();
+    // Vincola i nemici dentro la “staccionata”
+    const float kCorridorHalfWidth = 6.0f;
+    const float enemyMargin = 0.8f;
+    for (auto& seg : tunnel.segments) {
+        seg.nemici.setCorridorHalfWidth(kCorridorHalfWidth, enemyMargin);
+    }
+
+
+    // Boss setup
+    boss.setModel(modelBoss);
+    boss.setShader(alienoShader);
+    boss.setProiettileShader(proiettileShader);
+    boss.setProiettileModel(modelCubo);
+    boss.setAuraShader(bossAuraShader);
+    boss.initHealthBar();
+    boss.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f));
+
+    // Proiettili
+    proiettileNavicella.setShader(proiettileShader);
+    proiettileNavicella.setModel(modelCubo);
+    proiettileBoss.setShader(proiettileShader);
+    proiettileBoss.setModel(modelCubo);
+    proiettileBoss.setSpeed(5.0f);
+
+    initCrosshair();
+    // ─────────────────────────────
+    // MENU INIZIALE
+    bool startGame = false;
+    while (!startGame && !glfwWindowShouldClose(window)) {
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        beginHDRRender();
+        glDisable(GL_DEPTH_TEST);
+
+        // 1) SFONDO MENU (nebula + vignette + scanlines)
+        if (menuBgShader) {
+            menuBgShader->use();
+            menuBgShader->setFloat("time", currentFrame);
+            menuBgShader->setVec2("iResolution", glm::vec2((float)SCR_WIDTH, (float)SCR_HEIGHT));
+            renderQuad();
+        }
+
+        // 2) STARFIELD sopra allo sfondo
+        starShader->use();
+        starShader->setFloat("time", currentFrame);
+        starShader->setVec2("screenCenter", glm::vec2(0.5f, 0.5f));
+        starShader->setFloat("warp", 2.2f); // più tranquillo nel menu
+        starfield.update(deltaTime);
+        starfield.render();
+
+        // 3) TESTI con effetto “pulse”
+        float pulse = 0.5f + 0.5f * sin(currentFrame * 2.0f);
+        glm::vec3 titleCol = glm::mix(glm::vec3(0.3f, 1.0f, 1.0f), glm::vec3(0.9f, 1.0f, 1.0f), pulse);
+        glm::vec3 hintCol = glm::mix(glm::vec3(0.8f), glm::vec3(1.0f), pulse * 0.5f);
+
+        RenderText("ENDLESS RUNNER", 200.0f, 500.0f, 0.65f, titleCol);
+        RenderText("PREMI 1 PER GIOCARE", 100.0f, 400.0f, 0.5f, hintCol);
+        RenderText("PREMI 2 PER IMPOSTAZIONI", 100.0f, 340.0f, 0.5f, hintCol);
+        RenderText("ESC per uscire", 100.0f, 280.0f, 0.45f, glm::vec3(0.85f));
+
+        // 4) Chiudi HDR PRIMA dello swap (fix)
+        endHDRRender(shaderBloomFinal, shaderBlur);
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, true);
+        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+            startGame = true;
+        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+            apriMenuImpostazioni(window, starfield, starShader, suono);
+    }
+
+
+    // ─────────────────────────────
+    // CICLO DI GIOCO PRINCIPALE
+    while (!glfwWindowShouldClose(window)) {
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+        tempoGioco += deltaTime;
+
+        if (!faseBoss && tempoGioco >= tempoBoss) {
+            faseBoss = true;
+            transizioneBossAttiva = true;
+            timerTransizioneBoss = 0.0f;
+            boss.activate();
+            player.setPos(glm::vec3(0.0f, 0.0f, 0.0f));
+        }
+
+        timerNemici += deltaTime;
+        if (timerNemici >= tempoAvvioNemici)
+            nemiciAttivi = true;
+
+        processInput(window);
+        player.aggiorna(window, deltaTime);
+        // Clamp X del player dentro le staccionate
+        {
+            const float kCorridorHalfWidth = 6.0f;
+            const float playerMargin = 0.8f; // "raggio" del player
+            auto p = player.getPos();
+            p.x = glm::clamp(p.x,
+                -kCorridorHalfWidth + playerMargin,
+                kCorridorHalfWidth - playerMargin);
+            player.setPos(p);
+        }
+
+        player.aggiornaInvincibilita(deltaTime);
+        player.aggiornaBonus(deltaTime);
+        proiettileNavicella.aggiorna(deltaTime);
+        proiettileBoss.aggiorna(deltaTime);
+
+        beginHDRRender();
+
+        // CAMERA dinamica
+        if (faseBoss && transizioneBossAttiva) {
+            timerTransizioneBoss += deltaTime;
+            float t = glm::clamp(timerTransizioneBoss / tempoTransizioneBoss, 0.0f, 1.0f);
+            glm::vec3 eyeStart = glm::vec3(0.0f, 1.5f, player.getPos().z + 5.0f);
+            glm::vec3 centerStart = player.getPos();
+            glm::vec3 eyeEnd = player.getPos() + glm::vec3(0.0f, 2.0f, 5.0f);
+            glm::vec3 centerEnd = player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f);
+            view = glm::lookAt(glm::mix(eyeStart, eyeEnd, t), glm::mix(centerStart, centerEnd, t), glm::vec3(0, 1, 0));
+            if (t >= 1.0f) transizioneBossAttiva = false;
+        }
+        else if (faseBoss) {
+            view = glm::lookAt(
+                player.getPos() + glm::vec3(0.0f, 2.0f, 5.0f),
+                player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f),
+                glm::vec3(0, 1, 0)
+            );
+        }
+        else {
+            // camera “inseguimento” con roll
+            float roll = glm::clamp(player.getPos().x * 0.04f, -0.35f, 0.35f); // inclina con X
+            glm::mat4 base = glm::translate(glm::mat4(1.0f),
+                glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
+            view = glm::rotate(base, -roll, glm::vec3(0, 0, 1));
+        }
+
+        float fov = (faseBoss ? 66.0f : 60.0f);
+        projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 120.0f);
+        glm::vec3 eyePos = glm::vec3(glm::inverse(view)[3]);
+
+
+        // SKYBOX
+        skybox->Draw(*skyboxShader, view, projection);
+
+
+        // RENDER NAVICELLA
+        playerShader.use();
+        playerShader.setMat4("view", view);
+        playerShader.setMat4("projection", projection);
+        playerShader.setVec3("viewPos", eyePos);
+        playerShader.setVec3("light.position", glm::vec3(0.0f, 10.0f, eyePos.z + 10.0f));
+        playerShader.setVec3("light.ambient", glm::vec3(0.1f));
+        playerShader.setVec3("light.diffuse", glm::vec3(0.8f));
+        playerShader.setVec3("light.specular", glm::vec3(1.0f));
+        playerShader.setVec3("material.ambient", glm::vec3(1.0f, 0.5f, 0.31f));
+        playerShader.setVec3("material.diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
+        playerShader.setVec3("material.specular", glm::vec3(0.5f));
+        playerShader.setFloat("material.shininess", 32.0f);
+
+        player.render();
+        RenderText("Vite: " + std::to_string(player.getVite()), 20.0f, SCR_HEIGHT - 50.0f, 0.5f, glm::vec3(1.0f));
+
+        glDisable(GL_CULL_FACE);
+
+        // --- RENDER MURI (staccionata) ---
+        bool inBossFight = (faseBoss && !transizioneBossAttiva) ? true : false;
+        if (!inBossFight) {
+            const float kCorridorHalfWidth = 6.0f;
+            const float kFenceHeight = 1.5f;
+            const float kFenceThickness = 0.12f;
+            const float kSegLen = 60.0f;
+
+            wallShader.use();
+            wallShader.setVec3("fogColor", glm::vec3(0.01f, 0.02f, 0.05f));
+            wallShader.setFloat("fogStart", 35.0f);
+            wallShader.setFloat("fogEnd", 110.0f);
+            wallShader.setBool("fogEnabled", true);
+            wallShader.setMat4("view", view);
+            wallShader.setMat4("projection", projection);
+
+            // modalità spazio + parametri estetici
+            wallShader.setBool("spaceMode", true);
+            wallShader.setFloat("time", glfwGetTime());
+            wallShader.setVec3("viewPos", eyePos);
+            wallShader.setVec3("fenceTint", glm::vec3(0.25f, 0.6f, 1.0f)); // azzurrino
+            wallShader.setFloat("fenceHeight", kFenceHeight);
+            wallShader.setFloat("starDensity", 0.015f); // 0.005—0.03
+
+            glBindVertexArray(wallVAO);
+
+            float offsetZ = fmod(-player.getPos().z, kSegLen);
+            float z0 = -offsetZ, z1 = z0 - kSegLen;
+            auto drawFence = [&](float x, float z) {
+                glm::mat4 m(1.0f);
+                m = glm::translate(m, glm::vec3(x, 0.0f, z));
+                if (x > 0.0f) {
+                    // muro destro: flip su X per rivolgere la normale verso l’interno
+                    m = glm::scale(m, glm::vec3(-1.0f, 1.0f, 1.0f));
+                }
+                m = glm::scale(m, glm::vec3(kFenceThickness, kFenceHeight, kSegLen));
+                wallShader.setMat4("model", m);
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+                };
+
+
+            drawFence(-kCorridorHalfWidth, z0);
+            drawFence(-kCorridorHalfWidth, z1);
+            drawFence(kCorridorHalfWidth, z0);
+            drawFence(kCorridorHalfWidth, z1);
+
+            glBindVertexArray(0);
+        }
+
+
+        glEnable(GL_CULL_FACE);
+
+        // RENDER PROIETTILI
+        proiettileNavicella.setTranslateSpeed(proiettileNavicella.getSpeed() * deltaTime);
+        proiettileBoss.setTranslateSpeed(proiettileBoss.getSpeed() * deltaTime);
+
+        proiettileShader.use();
+        proiettileShader.setMat4("view", view);
+        proiettileShader.setMat4("projection", projection);
+        proiettileShader.setVec3("viewPos", camera.Position);
+        proiettileShader.setVec3("light.position", glm::vec3(0.0f, 10.0f, camera.Position.z + 10.0f));
+        proiettileShader.setVec3("light.ambient", glm::vec3(0.1f));
+        proiettileShader.setVec3("light.diffuse", glm::vec3(0.8f));
+        proiettileShader.setVec3("light.specular", glm::vec3(1.0f));
+        proiettileShader.setVec3("material.ambient", glm::vec3(1.0f, 0.5f, 0.31f));
+        proiettileShader.setVec3("material.diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
+        proiettileShader.setVec3("material.specular", glm::vec3(0.5f));
+        proiettileShader.setFloat("material.shininess", 32.0f);
+
+        proiettileNavicella.render(glm::vec3(1.0f));
+
+        // BONUS E NEMICI
+        if (!faseBoss) {
+            player.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f * deltaTime));
+
+            bonusShader.use();
+            bonusShader.setMat4("view", view);
+            bonusShader.setMat4("projection", projection);
+            bonusShader.setVec3("viewPos", camera.Position);
+            bonusShader.setVec3("light.position", glm::vec3(0.0f, 10.0f, camera.Position.z + 10.0f));
+            bonusShader.setVec3("light.ambient", glm::vec3(0.1f));
+            bonusShader.setVec3("light.diffuse", glm::vec3(0.8f));
+            bonusShader.setVec3("light.specular", glm::vec3(1.0f));
+            bonusShader.setVec3("material.ambient", glm::vec3(0.2f, 0.5f, 0.3f));
+            bonusShader.setVec3("material.diffuse", glm::vec3(0.2f, 0.5f, 0.3f));
+            bonusShader.setVec3("material.specular", glm::vec3(0.5f));
+            bonusShader.setFloat("material.shininess", 16.0f);
+
+            // --- LUCE per ALIENI (e ogni cosa che usa alienoShader) ---
+            alienoShader.use();
+            alienoShader.setVec3("viewPos", eyePos);
+            alienoShader.setVec3("light.position", glm::vec3(0.0f, 10.0f, eyePos.z + 10.0f));
+            alienoShader.setVec3("light.ambient", glm::vec3(0.10f));
+            alienoShader.setVec3("light.diffuse", glm::vec3(0.80f));
+            alienoShader.setVec3("light.specular", glm::vec3(1.00f));
+            alienoShader.setVec3("fogColor", glm::vec3(0.01f, 0.02f, 0.05f));
+            alienoShader.setFloat("fogStart", 45.0f);
+            alienoShader.setFloat("fogEnd", 120.0f);
+            alienoShader.setBool("fogEnabled", true);
+
+            // materiale “standard” per alieni (adatta a gusto)
+            alienoShader.setVec3("material.ambient", glm::vec3(0.25f, 0.25f, 0.3f));
+            alienoShader.setVec3("material.diffuse", glm::vec3(0.25f, 0.25f, 0.3f));
+            alienoShader.setVec3("material.specular", glm::vec3(0.4f));
+            alienoShader.setFloat("material.shininess", 16.0f);
+
+            modelBonus.Draw(bonusShader);
+
+            tunnel.update(deltaTime, player.getPos().z);
+            tunnel.draw(alienoShader, view, projection, proiettileNavicella, proiettileNavicella, player, giocoTerminato, nemiciAttivi);
+
+           
+            for (auto* nemici : tunnel.getTuttiINemici()) {
+                GestoreCollisioni::gestisciCollisioneConNemici(*nemici, player, nemiciAttivi, giocoTerminato);
+            }
+            // ── ESPLOSIONI PARTICELLARI PER NEMICI APPENA MORTI ───────────────
+            if (sistemaParticelle) {
+                for (auto* gruppo : tunnel.getTuttiINemici()) {
+                    for (auto& n : gruppo->getNemiciRiferimento()) {
+                        if (!n.vivo) {
+                            const void* key = static_cast<const void*>(&n);
+                            if (nemiciEsplosiUnaVolta.insert(key).second) {
+                                // burst: più particelle = effetto visibile
+                                glm::vec3 p = n.position + glm::vec3(0.0f, 0.4f, 0.0f);
+                                for (int i = 0; i < 30; ++i) {
+                                    sistemaParticelle->emit(p);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+
+
+            glDisable(GL_DEPTH_TEST);
+            starShader->use();
+            starShader->setFloat("time", glfwGetTime());
+            starShader->setVec2("screenCenter", glm::vec2(0.5f, 0.5f));
+            // più "warp" durante transizione/boss, più tranquillo in corsa
+            float warp = (faseBoss || transizioneBossAttiva) ? 6.0f : 2.5f;
+            starShader->setFloat("warp", warp);
+            starfield.update(deltaTime);
+            starfield.render(view, projection, starShader);
+            glEnable(GL_DEPTH_TEST);
+        }
+
+        // BOSS
+        if (faseBoss) {
+            glDisable(GL_DEPTH_TEST);
+            starShader->use();
+            starShader->setFloat("time", glfwGetTime());
+            starShader->setVec2("screenCenter", glm::vec2(0.5f, 0.5f));
+            // più "warp" durante transizione/boss, più tranquillo in corsa
+            float warp = (faseBoss || transizioneBossAttiva) ? 6.0f : 2.5f;
+            starShader->setFloat("warp", warp);
+            bossStarfield.update(deltaTime);
+            bossStarfield.render(view, projection, starShader);
+            glEnable(GL_DEPTH_TEST);
+
+            player.abilitaSparoTemporaneo(999999.0f);
+            player.setIsInvincibile(true);
+            player.aggiornaInvincibilita(10.0f);
+
+            boss.aggiorna(deltaTime, glfwGetTime());
+            boss.checkIsHitted(proiettileNavicella);
+            boss.checkCollisionPlayer(player, giocoTerminato);
+            boss.render(player, view, projection, healthBarShader);
+
+            drawCrosshair(window);
+        }
+
+        // PARTICELLE
+        if (sistemaParticelle) {
+            sistemaParticelle->update(deltaTime);
+
+            // bind texture + shader
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, particellaTexture);
+            particellaShader->use();
+            particellaShader->setInt("particleTexture", 0);
+            // (se il tuo SistemaParticelle non setta già view/projection) settiamole qui
+            if (particellaShader) {
+                particellaShader->setMat4("view", view);
+                particellaShader->setMat4("projection", projection);
+            }
+
+            // stato corretto per sprite/particles
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE);   // glow additivo
+            glDepthMask(GL_FALSE);               // non scrivere nel depth
+            glDisable(GL_CULL_FACE);             // niente culling sui quad
+
+            sistemaParticelle->render(view, projection);
+
+            // ripristino stato
+            glEnable(GL_CULL_FACE);
+            glDepthMask(GL_TRUE);
+            glDisable(GL_BLEND);
+        }
+
+
+        // FINE GIOCO
+        if (player.isGameOver()) {
+            giocoTerminato = true;
+            vittoria = false;
+        }
+        if (boss.isDead()) {
+            giocoTerminato = true;
+            vittoria = true;
+        }
+
+        if (giocoTerminato) break;
+
+        endHDRRender(shaderBloomFinal, shaderBlur);
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+    // ──────────────────────────────────────────────
+    
+    // SCHERMATA FINALE: HAI VINTO / HAI PERSO
+    glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
+    beginHDRRender();
+    glDisable(GL_DEPTH_TEST);
+
+    std::string messaggio = vittoria ? "HAI VINTO!" : "HAI PERSO!";
+    RenderText(messaggio + " - Livello " + std::to_string(livelloCorrente),
+        SCR_WIDTH / 2.0f - 150.0f,
+        SCR_HEIGHT / 2.0f,
+        1.0f,
+        glm::vec3(1.0f, 0.5f, 0.0f));
+
+    RenderText("Premi SPAZIO per tornare al menu",
+        SCR_WIDTH / 2.0f - 180.0f,
+        SCR_HEIGHT / 2.0f - 50.0f,
+        0.5f,
+        glm::vec3(1.0f));
+
+    endHDRRender(shaderBloomFinal, shaderBlur);
+    glfwSwapBuffers(window);
+
+    // Attendi rilascio del tasto SPAZIO se già premuto
+    while (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+    }
+
+    // Attendi nuova pressione di SPAZIO per continuare
+    bool attesaPressione = true;
+    while (attesaPressione && !glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            attesaPressione = false;
+        }
+    }
+}
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
+}
+void processInput(GLFWwindow* window) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && player.haBonusSparo()) {
+        player.gestisciSparo(window, proiettileNavicella);
+    }
+}
 void initCrosshair() {
     float scaleY = 0.1f;
     float scaleX = scaleY * ((float)SCR_HEIGHT / SCR_WIDTH);
     float quadVertices[] = {
-    -scaleX,  scaleY, 0.0f, 1.0f,
-    -scaleX, -scaleY, 0.0f, 0.0f,
-     scaleX, -scaleY, 1.0f, 0.0f,
+        -scaleX,  scaleY, 0.0f, 1.0f,
+        -scaleX, -scaleY, 0.0f, 0.0f,
+         scaleX, -scaleY, 1.0f, 0.0f,
 
-    -scaleX,  scaleY, 0.0f, 1.0f,
-     scaleX, -scaleY, 1.0f, 0.0f,
-     scaleX,  scaleY, 1.0f, 1.0f
+        -scaleX,  scaleY, 0.0f, 1.0f,
+         scaleX, -scaleY, 1.0f, 0.0f,
+         scaleX,  scaleY, 1.0f, 1.0f
     };
+
     glGenVertexArrays(1, &crosshairVAO);
     glGenBuffers(1, &crosshairVBO);
     glBindVertexArray(crosshairVAO);
@@ -281,7 +935,8 @@ void initCrosshair() {
     if (data) {
         glGenTextures(1, &crosshairTexture);
         glBindTexture(GL_TEXTURE_2D, crosshairTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, (nrChannels == 4 ? GL_RGBA : GL_RGB), GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
+            (nrChannels == 4 ? GL_RGBA : GL_RGB), GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -294,12 +949,9 @@ void initCrosshair() {
     crosshairShader = new Shader("mirino.vs", "mirino.fs");
     if (!crosshairShader->ID) {
         std::cerr << "[ERRORE] Shader del mirino non compilato correttamente!" << std::endl;
-        return;
     }
 }
-
 void drawCrosshair(GLFWwindow* window) {
-
     crosshairShader->use();
     glBindVertexArray(crosshairVAO);
     glDisable(GL_DEPTH_TEST);
@@ -314,20 +966,6 @@ void drawCrosshair(GLFWwindow* window) {
     glBindVertexArray(0);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
-
-void processInput(GLFWwindow* window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && player.haBonusSparo()) {
-        player.gestisciSparo(window, proiettileNavicella);
-    }
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
-}
-
 void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* starShader, Suono& suono) {
     std::string opzioni[] = {
         "RISOLUZIONE: 800x600",
@@ -346,7 +984,6 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
     bool audioAttivo = suono.getAttivoGlobale();
     float volume = suono.getVolumeGlobale(); // 0.0 - 1.0
 
-    // Stati per evitare ripetizioni con tasto premuto
     static bool keyUpPressed = false;
     static bool keyDownPressed = false;
     static bool keyLeftPressed = false;
@@ -354,21 +991,24 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
     static bool keyEnterPressed = false;
 
     while (inImpostazioni && !glfwWindowShouldClose(window)) {
-        glfwPollEvents();
+        
 
         glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
         beginHDRRender();
         glDisable(GL_DEPTH_TEST);
 
-        // Sfondo dinamico
         starShader->use();
         starfield.update(0.016f);
+        starShader->use();
+        starShader->setFloat("time", glfwGetTime());
+        starShader->setVec2("screenCenter", glm::vec2(0.5f, 0.5f));
+        // più "warp" durante transizione/boss, più tranquillo in corsa
+        float warp = (faseBoss || transizioneBossAttiva) ? 6.0f : 2.5f;
+        starShader->setFloat("warp", warp);
         starfield.render();
 
-        // Titolo
         RenderText("IMPOSTAZIONI", 250.0f, 500.0f, 0.6f, glm::vec3(1.0f));
 
-        // Aggiorna dinamicamente le voci
         opzioni[0] = "RISOLUZIONE: " + std::to_string(risoluzioni[indiceRisoluzione].first) + "x" + std::to_string(risoluzioni[indiceRisoluzione].second);
         opzioni[1] = audioAttivo ? "AUDIO: ON" : "AUDIO: OFF";
         {
@@ -384,13 +1024,10 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
             RenderText(opzioni[i], 200.0f, 400.0f - i * 60.0f, 0.5f, colore);
         }
 
-        // Guida tasti
         RenderText("USA FRECCIA SU / GIU PER SPOSTARTI - INVIO PER SELEZIONARE - A/D PER MODIFICARE - ESC PER USCIRE",
             20.0f, 50.0f, 0.35f, glm::vec3(0.8f));
 
-        glfwSwapBuffers(window);
 
-        // Navigazione
         if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
             if (!keyDownPressed) {
                 selezione = (selezione + 1) % 4;
@@ -407,8 +1044,7 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
         }
         else keyUpPressed = false;
 
-        // Modifica con A / D
-        if (selezione == 0) { // RISOLUZIONE
+        if (selezione == 0) {
             if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
                 if (!keyRightPressed) {
                     indiceRisoluzione = (indiceRisoluzione + 1) % risoluzioni.size();
@@ -428,7 +1064,7 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
             else keyLeftPressed = false;
         }
 
-        if (selezione == 2) { // VOLUME
+        if (selezione == 2) {
             if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS && volume < 1.0f) {
                 if (!keyRightPressed) {
                     volume += 0.1f;
@@ -450,7 +1086,6 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
             else keyLeftPressed = false;
         }
 
-        // Selezione con ENTER
         if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_ENTER) == GLFW_PRESS) {
             if (!keyEnterPressed) {
                 switch (selezione) {
@@ -467,401 +1102,46 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
         }
         else keyEnterPressed = false;
 
-        // ESC per uscire
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             inImpostazioni = false;
         }
+
         endHDRRender(shaderBloomFinal, shaderBlur);
+		glfwSwapBuffers(window);
+		glfwPollEvents();
     }
 }
 
 
 
+void initCubeVAO() {
+    if (cubeVAO) return;
+    float skyboxVertices[] = {
+        // 36 posizioni (solo posizioni, niente normali/UV)
+        -1.0f,  1.0f, -1.0f,  -1.0f, -1.0f, -1.0f,   1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,   1.0f,  1.0f, -1.0f,  -1.0f,  1.0f, -1.0f,
 
+        -1.0f, -1.0f,  1.0f,  -1.0f, -1.0f, -1.0f,  -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,  -1.0f,  1.0f,  1.0f,  -1.0f, -1.0f,  1.0f,
 
-int livelloCorrente = 1;
+         1.0f, -1.0f, -1.0f,   1.0f, -1.0f,  1.0f,   1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,   1.0f,  1.0f, -1.0f,   1.0f, -1.0f, -1.0f,
 
-int main() {
-    glfwInit();
-    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-    SCR_WIDTH = mode->width;
-    SCR_HEIGHT = mode->height;
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Endless Runner", monitor, nullptr);
-    if (!window) {
-        std::cerr << "[ERRORE] glfwCreateWindow ha fallito." << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+        -1.0f, -1.0f,  1.0f,  -1.0f,  1.0f,  1.0f,   1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,   1.0f, -1.0f,  1.0f,  -1.0f, -1.0f,  1.0f,
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cerr << "[ERRORE] Impossibile inizializzare GLAD." << std::endl;
-        return -1;
-    }
-    setupHDRBloom(SCR_WIDTH, SCR_HEIGHT);
-    // Inizializzazione shader e modelli prima di gameLoop
-    shaderProgram = new Shader("basic.vs", "basic.fs");
-    backgroundShader = new Shader("background.vs", "background.fs");
-    starShader = new Shader("star.vs", "star.fs");
+        -1.0f,  1.0f, -1.0f,   1.0f,  1.0f, -1.0f,   1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,  -1.0f,  1.0f,  1.0f,  -1.0f,  1.0f, -1.0f,
 
-    if (!shaderProgram || !shaderProgram->ID || !backgroundShader || !backgroundShader->ID || !starShader || !starShader->ID) {
-        std::cerr << "[ERRORE] Shader principali non validi." << std::endl;
-        return -1;
-    }
-
-    background = new Background(backgroundShader);
-
-    Model modelNavicella("../src/models/navicella/navicella.obj");
-    modelAlieno1 = Model("../src/models/alieni/alieno1/alieno1.obj");
-    modelAlieno2 = Model("../src/models/alieni/alieno2/alieno2.obj");
-    modelAlieno3 = Model("../src/models/alieni/alieno3/alieno3.obj");
-    modelCubo = Model("../src/models/cubo.obj");
-    modelBonus = Model("../src/models/armabonus/Flamethrower without armor.obj");
-    modelBoss = Model("../src/models/enemy/enemy.obj");
-
-    std::vector<Model> modelliNemici = {
-        modelAlieno1,
-        modelAlieno2,
-        modelAlieno3
+        -1.0f, -1.0f, -1.0f,  -1.0f, -1.0f,  1.0f,   1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,  -1.0f, -1.0f,  1.0f,   1.0f, -1.0f,  1.0f
     };
-
-    tunnel.setModelliNemici(modelliNemici);
-    tunnel.nemicoShader = &alienoShader;
-    tunnel.modelBonus = modelBonus;
-
-
-
-    while (!glfwWindowShouldClose(window)) {
-        giocoTerminato = false;
-        vittoria = false;
-        faseBoss = false;
-        transizioneBossAttiva = false;
-        tempoGioco = 0.0f;
-        timerTransizioneBoss = 0.0f;
-        timerNemici = 0.0f;
-        nemiciAttivi = false;
-
-        // Scala difficolt?
-        tempoBoss = 10.0f + livelloCorrente * 5.0f;
-        intervalloGenerazioneNemici = std::max(1.0f, 3.0f - 0.2f * livelloCorrente);
-
-        player = Player();
-        boss = Boss();
-        tunnel.livelloCorrente = livelloCorrente;
-        tunnel.init();
-
-        gameLoop(window);
-
-        if (vittoria) {
-            livelloCorrente++;
-        }
-        else {
-            livelloCorrente = 1;
-        }
-    }
-
-
-    if (shaderProgram) delete shaderProgram;
-    if (backgroundShader) delete backgroundShader;
-    if (starShader) delete starShader;
-    if (background) delete background;
-
-    glfwTerminate();
-    return 0;
-}
-
-// Implementazione della funzione gameLoop direttamente nel main.cpp
-
-void gameLoop(GLFWwindow* window) {
-    glEnable(GL_DEPTH_TEST);
-    initRenderText(SCR_WIDTH, SCR_HEIGHT);
-
-    starShader = new Shader("star.vs", "star.fs");
-    if (!starShader || !starShader->ID) {
-        std::cerr << "[ERRORE] Shader stelle non valido." << std::endl;
-        return;
-    }
-
-    Starfield starfield(200, SCR_WIDTH, SCR_HEIGHT);
-    BossStarfield bossStarfield(200, SCR_WIDTH, SCR_HEIGHT);
-
-    Shader playerShader("player.vs", "player.fs");
-    Shader bossAuraShader("aura.vs", "aura.fs");
-    Shader bonusShader("bonus.vs", "bonus.fs");
-    Shader bonusOutlineShader("bonus_outline.vs", "bonus_outline.fs");
-    disintegrationShader = Shader("disintegrazione.vs", "disintegrazione.fs");
-
-    glActiveTexture(GL_TEXTURE0);
-
-    alienoShader = Shader("alieno.vs", "alieno.fs");
-    proiettileShader = Shader("proiettile.vs", "proiettile.fs");
-    bossBarShader = Shader("barriera.vs", "barriera.fs");
-    healthBarShader = Shader("health_bar.vs", "health_bar.fs");
-    shaderBlur = Shader("blur.vs", "blur.fs");
-    shaderBloomFinal = Shader("bloom_final.vs", "bloom_final.fs");
-    shaderBlur.use();
-    shaderBlur.setInt("image", 0);
-
-    shaderBloomFinal.use();
-    shaderBloomFinal.setFloat("saturation", 1.3f);
-    shaderBloomFinal.setFloat("contrast", 1.0f);
-    shaderBloomFinal.setFloat("brightness", 1.3f);
-    shaderBloomFinal.setFloat("exposure", 0.9f);
-
-
-    shaderProgram = new Shader("basic.vs", "basic.fs");
-    backgroundShader = new Shader("background.vs", "background.fs");
-    if (!shaderProgram || !shaderProgram->ID || !backgroundShader || !backgroundShader->ID) {
-        std::cerr << "[ERRORE] Shader principali non validi." << std::endl;
-        return;
-    }
-
-    background = new Background(backgroundShader);
-
-    Model modelNavicella("../src/models/navicella/navicella.obj");
-    modelAlieno1 = Model("../src/models/alieni/alieno1/alieno1.obj");
-    modelAlieno2 = Model("../src/models/alieni/alieno2/alieno2.obj");
-    modelAlieno3 = Model("../src/models/alieni/alieno3/alieno3.obj");
-    modelCubo = Model("../src/models/cubo.obj");
-    modelBonus = Model("../src/models/armabonus/Flamethrower without armor.obj");
-    modelBoss = Model("../src/models/enemy/enemy.obj");
-
-    player.setShader(playerShader);
-    player.setModel(modelNavicella);
-    initParticleSystem(sistemaParticelle, particellaShader, particellaTexture);
-
-    std::vector<Model> modelliNemici = {
-        modelAlieno1,
-        modelAlieno2,
-        modelAlieno3
-    };
-    tunnel.setModelliNemici(modelliNemici);
-    tunnel.nemicoShader = &alienoShader;
-    tunnel.modelBonus = modelBonus;
-    tunnel.bonusShader = &bonusShader;
-    tunnel.bonusOutlineShader = &bonusOutlineShader;
-    tunnel.particleSystem = sistemaParticelle;
-    tunnel.init();
-
-    boss.setModel(modelBoss);
-    boss.setShader(alienoShader);
-    boss.setProiettileShader(proiettileShader);
-    boss.setProiettileModel(modelCubo);
-    boss.setAuraShader(bossAuraShader);
-    boss.initHealthBar();
-
-
-    glm::vec3 bossOffset(0.0f, 0.0f, -10.0f);
-    boss.setPos(player.getPos() + bossOffset);
-
-    proiettileNavicella.setShader(proiettileShader);
-    proiettileNavicella.setModel(modelCubo);
-    //proiettileSpeciale.setShader(proiettileShader);
-    proiettileBoss.setShader(proiettileShader);
-    proiettileBoss.setModel(modelCubo);
-    proiettileBoss.setSpeed(5.0f);
-
-    initCrosshair();
-
-    bool startGame = false;
-    while (!startGame && !glfwWindowShouldClose(window)) {
-        float currentFrame = glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-
-        glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
-        // glClear(GL_COLOR_BUFFER_BIT);
-        beginHDRRender();
-        glDisable(GL_DEPTH_TEST);
-
-        starShader->use();
-
-        starfield.update(deltaTime);
-        starfield.render();
-
-        RenderText("ENDLESS RUNNER", 200.0f, 500.0f, 0.6f, glm::vec3(0.3f, 1.0f, 1.0f));
-        RenderText("PREMI 1 PER GIOCARE", 100.0f, 400.0f, 0.5f, glm::vec3(1.0f));
-        RenderText("PREMI 2 PER IMPOSTAZIONI", 100.0f, 300.0f, 0.5f, glm::vec3(1.0f));
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-            glfwSetWindowShouldClose(window, true);
-        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
-            startGame = true;
-        else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
-            apriMenuImpostazioni(window, starfield, starShader, suono);
-        endHDRRender(shaderBloomFinal, shaderBlur);
-    }
-
-    while (!glfwWindowShouldClose(window)) {
-        float currentFrame = glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-
-        tempoGioco += deltaTime;
-
-        if (!faseBoss && tempoGioco >= tempoBoss) {
-            faseBoss = true;
-            transizioneBossAttiva = true;
-            timerTransizioneBoss = 0.0f;
-            boss.activate();
-            player.setPos(glm::vec3(0.0f, 0.0f, 0.0f));
-        }
-
-        timerNemici += deltaTime;
-        if (timerNemici >= tempoAvvioNemici) {
-            nemiciAttivi = true;
-        }
-
-        processInput(window);
-        player.aggiorna(window, deltaTime);
-        player.aggiornaInvincibilita(deltaTime);
-        player.aggiornaBonus(deltaTime);
-
-        proiettileNavicella.aggiorna(deltaTime);
-        proiettileBoss.aggiorna(deltaTime);
-
-        beginHDRRender();
-
-        glm::mat4 view;
-        if (faseBoss && transizioneBossAttiva) {
-            timerTransizioneBoss += deltaTime;
-            float t = glm::clamp(timerTransizioneBoss / tempoTransizioneBoss, 0.0f, 1.0f);
-            glm::vec3 eyeStart = glm::vec3(0.0f, 1.5f, player.getPos().z + 5.0f);
-            glm::vec3 centerStart = player.getPos();
-            glm::vec3 eyeEnd = player.getPos() + glm::vec3(0.0f, 2.0f, 5.0f);
-            glm::vec3 centerEnd = player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f);
-            view = glm::lookAt(glm::mix(eyeStart, eyeEnd, t), glm::mix(centerStart, centerEnd, t), glm::vec3(0, 1, 0));
-            if (t >= 1.0f) transizioneBossAttiva = false;
-        }
-        else if (faseBoss) {
-            view = glm::lookAt(player.getPos() + glm::vec3(0.0f, 2.0f, 5.0f), player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0, 1, 0));
-        }
-        else {
-            view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
-        }
-
-        glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 120.0f);
-
-        playerShader.use();
-        playerShader.setMat4("view", view);
-        playerShader.setMat4("projection", projection);
-        player.render();
-        std::string viteText = "Vite: " + std::to_string(player.getVite());
-        RenderText(viteText, 20.0f, SCR_HEIGHT - 50.0f, 0.5f, glm::vec3(1.0f));
-
-        healthBarShader.use();
-        healthBarShader.setMat4("projection", projection);
-
-        proiettileNavicella.setTranslateSpeed(proiettileNavicella.getSpeed() * deltaTime);
-        proiettileBoss.setTranslateSpeed(proiettileBoss.getSpeed() * deltaTime);
-        proiettileShader.use();
-        proiettileShader.setMat4("view", view);
-        proiettileShader.setMat4("projection", projection);
-
-        proiettileNavicella.render(glm::vec3(1.0f));
-
-        shaderProgram->use();
-        shaderProgram->setVec3("objectColor", glm::vec3(0.2f, 0.2f, 0.2f));
-        shaderProgram->setMat4("view", view);
-        shaderProgram->setMat4("projection", projection);
-
-        alienoShader.use();
-        alienoShader.setMat4("view", view);
-        alienoShader.setMat4("projection", projection);
-
-        disintegrationShader.use();
-        disintegrationShader.setInt("texture_diffuse1", 0);
-        disintegrationShader.setFloat("alpha", 1.0f);
-        disintegrationShader.setMat4("view", view);
-        disintegrationShader.setMat4("projection", projection);
-
-        if (!faseBoss) {
-            player.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f * deltaTime));
-            bonusShader.setFloat("time", glfwGetTime());
-            tunnel.update(deltaTime, player.getPos().z);
-            tunnel.draw(*shaderProgram, view, projection, proiettileNavicella, proiettileNavicella, player, giocoTerminato, nemiciAttivi);
-            for (auto* nemici : tunnel.getTuttiINemici()) {
-                GestoreCollisioni::gestisciCollisioneConNemici(*nemici, player, nemiciAttivi, giocoTerminato);
-            }
-
-
-            glDisable(GL_DEPTH_TEST);
-            starShader->use();
-            starfield.update(deltaTime);
-            starfield.render(view, projection, starShader);
-            glEnable(GL_DEPTH_TEST);
-        }
-        else {
-            glDisable(GL_DEPTH_TEST);
-            starShader->use();
-            bossStarfield.update(deltaTime);
-            bossStarfield.render(view, projection, starShader);
-            glEnable(GL_DEPTH_TEST);
-            player.abilitaSparoTemporaneo(999999.0f);
-            player.setIsInvincibile(true);
-            player.aggiornaInvincibilita(10.0f);
-            boss.aggiorna(deltaTime, glfwGetTime());
-            boss.checkIsHitted(proiettileNavicella);
-            // boss.checkIsHitted(proiettileSpeciale, esplosione);
-            boss.checkCollisionPlayer(player, giocoTerminato);
-            boss.render(player, view, projection, healthBarShader);
-            drawCrosshair(window);
-        }
-        if (sistemaParticelle) {
-            sistemaParticelle->update(deltaTime);
-
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, particellaTexture);
-            particellaShader->use();
-            particellaShader->setInt("particleTexture", 0);
-            sistemaParticelle->render(view, projection);
-        }
-        if (player.isGameOver()) {
-            giocoTerminato = true;
-            vittoria = false;
-        }
-        if (boss.isDead()) {
-            giocoTerminato = true;
-            vittoria = true;
-        }
-        if (giocoTerminato) {
-            break;
-        }
-        endHDRRender(shaderBloomFinal, shaderBlur);
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-
-    // Schermata finale
-    glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
-    beginHDRRender();
-    glDisable(GL_DEPTH_TEST);
-
-    std::string messaggio = vittoria ? "HAI VINTO!" : "HAI PERSO!";
-    RenderText(messaggio + " - Livello " + std::to_string(livelloCorrente), SCR_WIDTH / 2.0f - 150.0f, SCR_HEIGHT / 2.0f, 1.0f, glm::vec3(1.0f, 0.5f, 0.0f));
-    RenderText("Premi SPAZIO per tornare al menu", SCR_WIDTH / 2.0f - 180.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.5f, glm::vec3(1.0f));
-    endHDRRender(shaderBloomFinal, shaderBlur);
-
-    glfwSwapBuffers(window);
-    while (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !glfwWindowShouldClose(window)) {
-        glfwPollEvents();
-    }
-
-    // Ora aspetta nuova pressione
-    bool attesaPressione = true;
-    while (attesaPressione && !glfwWindowShouldClose(window)) {
-        glfwPollEvents();
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            attesaPressione = false;
-        }
-    }
+    glGenVertexArrays(1, &cubeVAO);
+    glGenBuffers(1, &cubeVBO);
+    glBindVertexArray(cubeVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glBindVertexArray(0);
 }

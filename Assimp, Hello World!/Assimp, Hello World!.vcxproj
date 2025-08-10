@@ -184,12 +184,16 @@
     <None Include="esplosione.vs" />
     <None Include="health_bar.fs" />
     <None Include="health_bar.vs" />
+    <None Include="menu_bg.fs" />
+    <None Include="menu_bg.vs" />
     <None Include="mirino.fs" />
     <None Include="mirino.vs" />
     <None Include="particella.fs" />
     <None Include="particella.vs" />
     <None Include="player.fs" />
     <None Include="player.vs" />
+    <None Include="skybox.fs" />
+    <None Include="skybox.vs" />
     <None Include="star.fs" />
     <None Include="star.vs" />
     <None Include="alieno.fs" />
@@ -207,12 +211,18 @@
     <None Include="packages.config" />
     <None Include="proiettile.fs" />
     <None Include="proiettile.vs" />
+    <None Include="starfield.fs" />
     <None Include="text.fs" />
     <None Include="text.vs" />
+    <None Include="unlit_color.fs" />
+    <None Include="unlit_texture.vs" />
+    <None Include="wall.fs" />
+    <None Include="wall.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="skybox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Background.h" />
@@ -228,6 +238,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="shader_m.h" />
     <ClInclude Include="SistemaParticelle.h" />
+    <ClInclude Include="skybox.h" />
     <ClInclude Include="starfield.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="suono.h" />

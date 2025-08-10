@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <vector>
 #include <iostream>
@@ -139,6 +139,12 @@ public:
             frequenza = std::min(frequenza, maxFrequenza);
 
             n.position.x = n.baseX + ampiezza * std::sin(frequenza * n.animationTime);
+            // Clamp dentro il corridoio centrato su basePosition.x
+            float lim = areaX; // semi-larghezza consentita
+            n.position.x = glm::clamp(n.position.x,
+                basePosition.x - lim,
+                basePosition.x + lim);
+
         }
     }
 
@@ -256,6 +262,11 @@ public:
         }
         return true;
     }
+    void setCorridorHalfWidth(float halfWidth, float margin) {
+        // areaX viene usata sia per lo spawn che per il clamp del movimento
+        areaX = std::max(0.0f, halfWidth - margin);
+    }
+
 
 
 };
