@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <vector>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -77,23 +77,30 @@ private:
     unsigned int maxParticles;
     GLuint VAO, VBO;
     Shader* shader;
+    int lastUsed = 0;
+
 
     int findUnusedParticle() {
-        for (unsigned int i = 0; i < maxParticles; ++i) {
-            if (particles[i].life <= 0.0f)
-                return i;
+        for (unsigned int i = lastUsed; i < maxParticles; ++i) {
+            if (particles[i].life <= 0.0f) { lastUsed = i + 1; return i; }
         }
-        return 0;
+        for (unsigned int i = 0; i < lastUsed; ++i) {
+            if (particles[i].life <= 0.0f) { lastUsed = i + 1; return i; }
+        }
+        lastUsed = (lastUsed + 1) % maxParticles;
+        return lastUsed;
     }
+
 
     void initRenderData() {
         float quad[] = {
-            // positions    // texCoords
-            -0.05f, -0.05f, 0.0f, 0.0f,
-             0.05f, -0.05f, 1.0f, 0.0f,
-            -0.05f,  0.05f, 0.0f, 1.0f,
-             0.05f,  0.05f, 1.0f, 1.0f,
+      -0.25f, -0.25f, 0.0f, 0.0f,
+       0.25f, -0.25f, 1.0f, 0.0f,
+      -0.25f,  0.25f, 0.0f, 1.0f,
+       0.25f,  0.25f, 1.0f, 1.0f
         };
+
+
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
         glBindVertexArray(VAO);

@@ -416,6 +416,8 @@ void gameLoop(GLFWwindow* window) {
     glm::mat4 view;
     glm::mat4 projection;
 
+    bool bossMorto = false;
+    float timerPostMorteBoss = 0.0f;
 
     // Shader principali
     Shader playerShader("player.vs", "player.fs");
@@ -486,6 +488,9 @@ void gameLoop(GLFWwindow* window) {
     boss.setAuraShader(bossAuraShader);
     boss.initHealthBar();
     boss.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f));
+    boss.setScale(1.8f);
+    boss.setParticleSystem(sistemaParticelle);
+
 
     // Proiettili
     proiettileNavicella.setShader(proiettileShader);
@@ -764,14 +769,44 @@ void gameLoop(GLFWwindow* window) {
                             if (nemiciEsplosiUnaVolta.insert(key).second) {
                                 // burst: più particelle = effetto visibile
                                 glm::vec3 p = n.position + glm::vec3(0.0f, 0.4f, 0.0f);
-                                for (int i = 0; i < 30; ++i) {
-                                    sistemaParticelle->emit(p);
-                                }
+                                sistemaParticelle->emit(p);
+
                             }
                         }
                     }
                 }
             }
+            // --- Collisione PROIETTILE ⇄ NEMICI + EMIT PARTICELLE ---
+            if (sistemaParticelle) {
+                auto bulletPos = proiettileNavicella.getVecPos();  
+                float halfLen = proiettileNavicella.getLunghezza() * 0.5f; // se 0, lascia pure 0
+
+                for (int bi = (int)bulletPos.size() - 1; bi >= 0; --bi) {
+                    glm::vec2 bulletHead(bulletPos[bi].x, bulletPos[bi].z - halfLen);
+
+                    bool removed = false;
+                    for (auto* gruppo : tunnel.getTuttiINemici()) {
+                        for (auto& n : gruppo->getNemiciRiferimento()) {
+                            if (!n.vivo || n.isBonus) continue;
+
+                            glm::vec2 enemyCenter(n.position.x, n.position.z);
+                            float rEnemy = 0.8f; // “raggio” hitbox nemico (adatta a gusto)
+                            if (glm::distance(bulletHead, enemyCenter) < rEnemy) {
+                                n.vivo = false;
+                                proiettileNavicella.eliminaInPos(bi);
+                                removed = true;
+
+                                // esplosione singola con burst visibile
+                                glm::vec3 p = n.position + glm::vec3(0.0f, 0.4f, 0.0f);
+                                for (int i = 0; i < 30; ++i) sistemaParticelle->emit(p);
+                                break;
+                            }
+                        }
+                        if (removed) break;
+                    }
+                }
+            }
+
 
 
 
@@ -805,7 +840,7 @@ void gameLoop(GLFWwindow* window) {
             player.aggiornaInvincibilita(10.0f);
 
             boss.aggiorna(deltaTime, glfwGetTime());
-            boss.checkIsHitted(proiettileNavicella);
+            boss.checkIsHitted(proiettileNavicella, player);
             boss.checkCollisionPlayer(player, giocoTerminato);
             boss.render(player, view, projection, healthBarShader);
 
@@ -816,30 +851,20 @@ void gameLoop(GLFWwindow* window) {
         if (sistemaParticelle) {
             sistemaParticelle->update(deltaTime);
 
-            // bind texture + shader
+            glDisable(GL_DEPTH_TEST);                // <— importantissimo
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, particellaTexture);
+
             particellaShader->use();
             particellaShader->setInt("particleTexture", 0);
-            // (se il tuo SistemaParticelle non setta già view/projection) settiamole qui
-            if (particellaShader) {
-                particellaShader->setMat4("view", view);
-                particellaShader->setMat4("projection", projection);
-            }
-
-            // stato corretto per sprite/particles
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE);   // glow additivo
-            glDepthMask(GL_FALSE);               // non scrivere nel depth
-            glDisable(GL_CULL_FACE);             // niente culling sui quad
+            particellaShader->setMat4("view", view);
+            particellaShader->setMat4("projection", projection);
 
             sistemaParticelle->render(view, projection);
-
-            // ripristino stato
-            glEnable(GL_CULL_FACE);
-            glDepthMask(GL_TRUE);
-            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
         }
+
+
 
 
         // FINE GIOCO
@@ -847,10 +872,26 @@ void gameLoop(GLFWwindow* window) {
             giocoTerminato = true;
             vittoria = false;
         }
-        if (boss.isDead()) {
-            giocoTerminato = true;
-            vittoria = true;
+        // FINE GIOCO
+        if (boss.isDead() && !bossMorto) {
+            bossMorto = true;
+            timerPostMorteBoss = 0.0f;
+
+            // burst extra per dare enfasi
+            glm::vec3 posExpl = glm::vec3(boss.getPos().x, boss.getPos().y + 0.8f * 1.8f,
+                player.getPos().z - 10.0f);
+            for (int i = 0; i < 10; ++i) sistemaParticelle->emit(posExpl);
         }
+
+        if (bossMorto) {
+            timerPostMorteBoss += deltaTime;
+            // dopo 1.2s passa alla schermata finale
+            if (timerPostMorteBoss > 1.2f) {
+                giocoTerminato = true;
+                vittoria = true;
+            }
+        }
+
 
         if (giocoTerminato) break;
 

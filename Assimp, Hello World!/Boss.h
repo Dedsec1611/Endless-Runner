@@ -1,4 +1,4 @@
-#ifndef BOSS_H
+﻿#ifndef BOSS_H
 #define BOSS_H
 
 #include <glad/glad.h>
@@ -9,6 +9,7 @@
 #include "model.h"
 #include "proiettile.h"
 #include "Player.h"
+#include "SistemaParticelle.h"
 
 class Boss {
 private:
@@ -24,6 +25,14 @@ private:
     bool active = false;
     unsigned int healthBarVAO = 0;
     unsigned int healthBarVBO = 0;
+    float baseX = 0.0f;
+    float bobAmp = 0.5f;
+    float bobFreq = 0.9f;
+    float moveFreq = 0.8f;
+    float scale = 1.8f;                 // <— grandezza boss
+    SistemaParticelle* particleSystem = nullptr;
+
+
     Shader shader;
     Shader auraShader; // shader per l'aura
     Model model;
@@ -43,6 +52,9 @@ public:
     void setModel(Model m) { model = m; }
     void setProiettileShader(Shader s) { proiettileShader = s; }
     void setProiettileModel(Model m) { proiettileModel = m; }
+    void setScale(float s) { scale = s; }
+    void setParticleSystem(SistemaParticelle* ps) { particleSystem = ps; }
+
     glm::vec3 getPos() const {
         return pos;
     }
@@ -53,12 +65,13 @@ public:
     void activate() {
         active = true;
         proiettili.clear();
-
         health = 100.0f + 20.0f * (livello - 1);
         maxHealth = health;
         speed = 2.0f + 0.2f * (livello - 1);
         shootInterval = std::max(0.5, 1.5 - 0.1 * (livello - 1));
+        baseX = pos.x;             // <- memorizza centro oscillazione
     }
+
 
     bool isActive() const { return active; }
     bool isDead() const { return health <= 0.0f; }
@@ -68,17 +81,21 @@ public:
         std::cout << "[DEBUG] Time: " << currentTime
             << ", lastShot: " << lastShotTime
             << ", intervallo: " << shootInterval << std::endl;
-        pos.x += direction * speed * deltaTime;
-        if (fabs(pos.x) > movementRange) direction *= -1.0f;
+        // movimento autonomo (sinus X) + bobbing Y
+        pos.x = baseX + movementRange * sin(currentTime * moveFreq + 0.3 * livello);
+        pos.y = 0.5f * sin(currentTime * bobFreq);
 
+        // spara come prima
         if (currentTime - lastShotTime > shootInterval) {
             shoot();
             lastShotTime = currentTime;
         }
 
+        // update proiettili boss
         for (auto& p : proiettili) {
             p.setTranslateSpeed(p.getSpeed() * deltaTime);
         }
+
     }
 
     void shoot() {
@@ -115,15 +132,21 @@ public:
     void render(Player& player,
         const glm::mat4& view, const glm::mat4& projection, Shader& barShader) {
 
-        if (!active) return;
-
-    
+        if (!active || isDead()) return;
 
         shader.use();
-		glm::mat4 modelMat = glm::mat4(1.0f);
+
+        // Mantieni il boss davanti al player di ~10 unità in Z:
+        glm::vec3 posWorld = pos;
+        posWorld.z = player.getPos().z - 10.0f;
+
+        // MODEL MATRIX CORRETTA
+        glm::mat4 modelMat = glm::translate(glm::mat4(1.0f), posWorld);
+        modelMat = glm::scale(modelMat, glm::vec3(scale));
         shader.setMat4("model", modelMat);
         shader.setMat4("view", view);
         shader.setMat4("projection", projection);
+
         // ─── ILUMINAZIONE PHONG ────────────────────────────────────────────
         glm::vec3 lightPos(0.0f, 10.0f, player.getPos().z + 10.0f);
         shader.setVec3("viewPos", player.getPos());
@@ -140,13 +163,16 @@ public:
 
 
         // Aura rossa dietro al boss
+		glDepthMask(GL_FALSE); // non vogliamo che sia coperta
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         auraShader.use();
-		glm::mat4 auraMat = glm::mat4(1.0f);
+        glm::mat4 auraMat = glm::translate(glm::mat4(1.0f), posWorld);
+        auraMat = glm::scale(auraMat, glm::vec3(scale * 1.08f));
         auraShader.setMat4("model", auraMat);
         auraShader.setMat4("view", view);
         auraShader.setMat4("projection", projection);
+
         // ─── ILUMINAZIONE PHONG (stessi valori) ────────────────────────────
         auraShader.setVec3("viewPos", player.getPos());
         auraShader.setVec3("light.position", lightPos);
@@ -161,6 +187,7 @@ public:
         model.Draw(auraShader);
 
         glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE); // riattiva depth mask
         // Proiettili
         proiettileShader.use();
         proiettileShader.setMat4("view", view);
@@ -244,35 +271,38 @@ public:
         glBindVertexArray(0);
         glEnable(GL_DEPTH_TEST);
     }
-    void checkIsHitted(Proiettile& proiettile) {
-        for (int i = 0; i < proiettile.getVecPos().size(); i++) {
-            float proiettile_x = proiettile.getVecPos()[i].x;
-            float proiettile_z = proiettile.getVecPos()[i].z;
+    void checkIsHitted(Proiettile& proiettile, const Player& player) {
+        // boss world-Z: sempre davanti al player di 10
+        float bossZ = player.getPos().z - 10.0f;
 
-            glm::vec2 punto = glm::vec2(proiettile_x, proiettile_z - (proiettile.getLunghezza() / 2));
-            glm::vec2 centro = glm::vec2(pos.x, pos.z - 1.5f); 
+        // ATTENZIONE: getVecPos() ritorna per valore: salvalo in una variabile
+        auto bullets = proiettile.getVecPos();
+        for (int i = 0; i < (int)bullets.size(); ++i) {
+            float proiettile_x = bullets[i].x;
+            float proiettile_z = bullets[i].z;
 
-            float dx = punto.x - centro.x;
-            float dz = punto.y - centro.y;
-            float distanza2 = dx * dx + dz * dz;
+            glm::vec2 punto = glm::vec2(proiettile_x, proiettile_z - (proiettile.getLunghezza() * 0.5f));
+            glm::vec2 centro = glm::vec2(pos.x, bossZ - 1.5f);
 
-            float raggio = 3.5f; // raggio della hitbox del boss, adatta se necessario
+            float distanza2 = glm::dot(punto - centro, punto - centro);
+            float raggio = 3.5f * scale;
 
             if (distanza2 <= raggio * raggio) {
+                hit(proiettile.getIsSpeciale() ? 15.0f : 1.0f);
 
-                if (proiettile.getIsSpeciale()) {
-                    hit(15.0f);
+                if (particleSystem) {
+                    glm::vec3 p = glm::vec3(pos.x, pos.y + 0.8f * scale, bossZ);
+                    particleSystem->emit(p);                 // 50 particelle (già nel tuo emit)
+                    if (health <= 0.0f) {
+                        for (int k = 0; k < 3; ++k) particleSystem->emit(glm::vec3(pos.x, pos.y, bossZ));
+                    }
                 }
-                else {
-                    hit(1.0f);
-                }
-               
-                proiettile.eliminaInPos(i); 
-                std::cout << "[BOSS] Colpito! HP: " << health << std::endl;
+                proiettile.eliminaInPos(i);
                 break;
             }
         }
     }
+
 
 
     void checkCollisionPlayer(Player& player,  bool& giocoTerminato) {
