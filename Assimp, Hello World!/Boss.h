@@ -13,7 +13,7 @@
 
 class Boss {
 private:
-    glm::vec3 pos = glm::vec3(0.0f, 0.0f, -40.0f);
+    glm::vec3 pos = glm::vec3(0.0f, 0.0f, -60.0f);
     float speed = 2.0f;
     int livello = 1;
     float movementRange = 6.0f;
@@ -29,7 +29,7 @@ private:
     float bobAmp = 0.5f;
     float bobFreq = 0.9f;
     float moveFreq = 0.8f;
-    float scale = 1.8f;                 // <— grandezza boss
+    float scale = 3.0f;                 // <— grandezza boss
     SistemaParticelle* particleSystem = nullptr;
 
 
@@ -141,8 +141,11 @@ public:
         posWorld.z = player.getPos().z - 10.0f;
 
         // MODEL MATRIX CORRETTA
-        glm::mat4 modelMat = glm::translate(glm::mat4(1.0f), posWorld);
-        modelMat = glm::scale(modelMat, glm::vec3(scale));
+        /*glm::mat4 modelMat = glm::translate(glm::mat4(1.0f), posWorld);
+        modelMat = glm::scale(modelMat, glm::vec3(scale));*/
+         glm::mat4 modelMat = glm::translate(glm::mat4(1.0f), pos);
+        modelMat = glm::translate(modelMat, glm::vec3(0.0f, -5.0f, 0.0f));
+        modelMat = glm::scale(modelMat, glm::vec3(5.0f));
         shader.setMat4("model", modelMat);
         shader.setMat4("view", view);
         shader.setMat4("projection", projection);

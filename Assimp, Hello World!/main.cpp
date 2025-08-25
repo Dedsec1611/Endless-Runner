@@ -485,7 +485,7 @@ void gameLoop(GLFWwindow* window) {
     boss.setShader(alienoShader);
     boss.setProiettileShader(proiettileShader);
     boss.setProiettileModel(modelCubo);
-    boss.setAuraShader(bossAuraShader);
+    //boss.setAuraShader(bossAuraShader);
     boss.initHealthBar();
     boss.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f));
     boss.setScale(1.8f);
@@ -849,9 +849,19 @@ void gameLoop(GLFWwindow* window) {
 
         // PARTICELLE
         if (sistemaParticelle) {
+     
             sistemaParticelle->update(deltaTime);
 
-            glDisable(GL_DEPTH_TEST);                // <— importantissimo
+            GLboolean wasCull = glIsEnabled(GL_CULL_FACE);
+            GLboolean wasDepth = glIsEnabled(GL_DEPTH_TEST);
+            GLint depthMask; glGetIntegerv(GL_DEPTH_WRITEMASK, &depthMask);
+
+            glDisable(GL_CULL_FACE);                 
+            glEnable(GL_DEPTH_TEST);                 
+            glDepthMask(GL_FALSE);                   
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_ONE, GL_ONE);         
+
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, particellaTexture);
 
@@ -861,7 +871,12 @@ void gameLoop(GLFWwindow* window) {
             particellaShader->setMat4("projection", projection);
 
             sistemaParticelle->render(view, projection);
-            glEnable(GL_DEPTH_TEST);
+
+            // ripristina stato
+            if (wasCull) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+            if (wasDepth) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+            glDepthMask(depthMask);
+            glDisable(GL_BLEND);
         }
 
 
