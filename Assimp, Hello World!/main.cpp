@@ -86,6 +86,7 @@ Shader* menuBgShader = nullptr;
 
 
 Shader alienoShader;
+Shader bossShader;
 Shader proiettileShader;
 Shader disintegrationShader;
 Shader bossBarShader;
@@ -429,6 +430,7 @@ void gameLoop(GLFWwindow* window) {
     disintegrationShader = disintegrationShaderLocal;
 
     alienoShader = Shader("alieno.vs", "alieno.fs");
+    bossShader = Shader("enemy_shader.vs", "enemy_shader.fs");
     proiettileShader = Shader("proiettile.vs", "unlit_color.fs");
     bossBarShader = Shader("barriera.vs", "barriera.fs");
     healthBarShader = Shader("health_bar.vs", "health_bar.fs");
@@ -482,7 +484,7 @@ void gameLoop(GLFWwindow* window) {
 
     // Boss setup
     boss.setModel(modelBoss);
-    boss.setShader(alienoShader);
+    boss.setShader(bossShader);
     boss.setProiettileShader(proiettileShader);
     boss.setProiettileModel(modelCubo);
     //boss.setAuraShader(bossAuraShader);
@@ -751,6 +753,7 @@ void gameLoop(GLFWwindow* window) {
             alienoShader.setVec3("material.specular", glm::vec3(0.4f));
             alienoShader.setFloat("material.shininess", 16.0f);
 
+
             modelBonus.Draw(bonusShader);
 
             tunnel.update(deltaTime, player.getPos().z);
@@ -852,6 +855,7 @@ void gameLoop(GLFWwindow* window) {
      
             sistemaParticelle->update(deltaTime);
 
+     
             GLboolean wasCull = glIsEnabled(GL_CULL_FACE);
             GLboolean wasDepth = glIsEnabled(GL_DEPTH_TEST);
             GLint depthMask; glGetIntegerv(GL_DEPTH_WRITEMASK, &depthMask);

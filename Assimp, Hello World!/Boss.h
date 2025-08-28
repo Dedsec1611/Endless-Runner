@@ -162,6 +162,23 @@ public:
         shader.setVec3("material.specular", glm::vec3(0.7f, 0.7f, 0.7f));
         shader.setFloat("material.shininess", 32.0f);
         // ─────────────────────────────────────────────────────────────────────
+        shader.setBool("useSpotlight", true);
+
+        glm::vec3 spotlightPos = player.getPos() + glm::vec3(0.0f, 0.0f, 5.0f);  // poco davanti al player
+        glm::vec3 spotlightDir = glm::normalize(pos - spotlightPos);             // punta verso il boss
+
+        shader.setVec3("spotlight.position", spotlightPos);
+        shader.setVec3("spotlight.direction", spotlightDir);
+        shader.setFloat("spotlight.cutOff", glm::cos(glm::radians(15.0f)));
+        shader.setFloat("spotlight.outerCutOff", glm::cos(glm::radians(20.0f)));
+
+        shader.setVec3("spotlight.ambient", glm::vec3(0.1f));
+        shader.setVec3("spotlight.diffuse", glm::vec3(0.9f));
+        shader.setVec3("spotlight.specular", glm::vec3(1.0f));
+
+        shader.setFloat("spotlight.constant", 1.0f);
+        shader.setFloat("spotlight.linear", 0.09f);
+        shader.setFloat("spotlight.quadratic", 0.032f);
         model.Draw(shader);
 
 

@@ -97,12 +97,6 @@
     <None Include="esplosione.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="enemy_shader.vs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="enemy_shader.fs">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="aura.vs">
       <Filter>Resource Files</Filter>
     </None>
@@ -167,6 +161,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="menu_bg.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="enemy_shader.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="enemy_shader.vs">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
