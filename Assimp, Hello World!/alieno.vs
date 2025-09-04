@@ -5,6 +5,7 @@ layout (location = 2) in vec2 aTexCoords;
 
 out vec2 TexCoords;
 out vec3 FragPos;   
+out vec3 Normal;    // nuova uscita per spotlight
 
 uniform mat4 model;
 uniform mat4 view;
@@ -14,9 +15,13 @@ void main()
 {
     TexCoords = aTexCoords;
 
-    // world space -> per la fog
+    // posizione in world space
     vec4 worldPos = model * vec4(aPos, 1.0);
     FragPos = worldPos.xyz;
+
+    // normale in world space (usa normal matrix)
+    mat3 normalMatrix = mat3(transpose(inverse(model)));
+    Normal = normalize(normalMatrix * aNormal);
 
     gl_Position = projection * view * worldPos;
 }

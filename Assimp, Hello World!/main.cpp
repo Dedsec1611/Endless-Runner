@@ -50,6 +50,10 @@ unsigned int cubeVAO = 0, cubeVBO = 0;
 
 unsigned int crosshairVAO = 0, crosshairVBO = 0, crosshairTexture = 0;
 
+
+ISoundEngine* gSoundEngine = nullptr;
+ISound* gBgMusic = nullptr;
+
 // Controllo gioco
 bool giocoTerminato = false;
 bool vittoria = false;
@@ -118,8 +122,8 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
 void gameLoop(GLFWwindow* window);
 void setupHDRBloom(int width, int height);
 void renderQuad();
-void beginHDRRender();
-void endHDRRender(Shader& bloomFinal, Shader& blur);
+void beginHDRRender(bool isActive);
+void endHDRRender(bool isActive,Shader& bloomFinal, Shader& blur);
 GLuint loadParticleTexture(const char* path);
 void initParticleSystem(SistemaParticelle*& system, Shader*& particleShader, GLuint& textureID);
 
@@ -176,6 +180,10 @@ int main() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 
+    gSoundEngine = createIrrKlangDevice();
+    if (!gSoundEngine) {
+        std::cerr << "[ERRORE] Impossibile inizializzare irrKlang.\n";
+    }
     // Shader di base
     shaderProgram = new Shader("basic.vs", "basic.fs");
     backgroundShader = new Shader("background.vs", "background.fs");
@@ -364,17 +372,66 @@ void renderHDR(Shader& finalShader, float exposure) {
 
     renderQuad();
 }
-void beginHDRRender() {
-    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+void beginHDRRender(bool isActive)
+{
+    if (isActive) {
+        glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+    }
+    else {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void endHDRRender(Shader& bloomFinal, Shader& blur) {
+ void endHDRRender(bool isActive, Shader& bloomFinal, Shader& blur)
+{
+    if (!isActive) {
+        return;
+    }
     renderBlur(blur, 10);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    renderHDR(bloomFinal, 0.1f);
+    renderHDR(bloomFinal, 0.4f); 
 }
+
+ inline void StartGameplayMusic(const char* path, float volume01, bool enabled)
+ {
+     if (!gSoundEngine) return;
+
+     // se era già in riproduzione, evita doppioni
+     if (gBgMusic) {
+         gBgMusic->stop();
+         gBgMusic->drop();
+         gBgMusic = nullptr;
+     }
+
+     // preload in pausa, poi settiamo volume e partiamo
+     gBgMusic = gSoundEngine->play2D(path, /*looped*/ true, /*startPaused*/ true, /*track*/ true);
+     if (!gBgMusic) return;
+
+     gBgMusic->setVolume(glm::clamp(volume01, 0.0f, 1.0f));
+     gBgMusic->setIsPaused(!enabled); // se audio OFF, rimane in pausa
+ }
+
+ inline void StopGameplayMusic()
+ {
+     if (gBgMusic) {
+         gBgMusic->stop();
+         gBgMusic->drop();
+         gBgMusic = nullptr;
+     }
+ }
+
+ inline void SetGameplayMusicEnabled(bool enabled)
+ {
+     if (gBgMusic) gBgMusic->setIsPaused(!enabled);
+ }
+
+ inline void SetGameplayMusicVolume(float volume01)
+ {
+     if (gBgMusic) gBgMusic->setVolume(glm::clamp(volume01, 0.0f, 1.0f));
+ }
+
 GLuint loadParticleTexture(const char* path) {
     GLuint textureID;
     glGenTextures(1, &textureID);
@@ -430,6 +487,9 @@ void gameLoop(GLFWwindow* window) {
     disintegrationShader = disintegrationShaderLocal;
 
     alienoShader = Shader("alieno.vs", "alieno.fs");
+    alienoShader.use();
+    alienoShader.setInt("texture_diffuse1", 0);
+
     bossShader = Shader("enemy_shader.vs", "enemy_shader.fs");
     proiettileShader = Shader("proiettile.vs", "unlit_color.fs");
     bossBarShader = Shader("barriera.vs", "barriera.fs");
@@ -510,7 +570,7 @@ void gameLoop(GLFWwindow* window) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        beginHDRRender();
+        beginHDRRender(false);
         glDisable(GL_DEPTH_TEST);
 
         // 1) SFONDO MENU (nebula + vignette + scanlines)
@@ -540,7 +600,7 @@ void gameLoop(GLFWwindow* window) {
         RenderText("ESC per uscire", 100.0f, 280.0f, 0.45f, glm::vec3(0.85f));
 
         // 4) Chiudi HDR PRIMA dello swap (fix)
-        endHDRRender(shaderBloomFinal, shaderBlur);
+        endHDRRender(false,shaderBloomFinal, shaderBlur);
         glfwSwapBuffers(window);
         glfwPollEvents();
 
@@ -548,6 +608,9 @@ void gameLoop(GLFWwindow* window) {
             glfwSetWindowShouldClose(window, true);
         if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
             startGame = true;
+            const char* kGameplayMusic = "../src/sounds/musicaSottofondo.wav";
+            StartGameplayMusic(kGameplayMusic, /*volume*/ suono.getVolumeGlobale(), /*enabled*/ suono.getAttivoGlobale());
+            SetGameplayMusicEnabled(suono.getAttivoGlobale());
         if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
             apriMenuImpostazioni(window, starfield, starShader, suono);
     }
@@ -591,7 +654,7 @@ void gameLoop(GLFWwindow* window) {
         proiettileNavicella.aggiorna(deltaTime);
         proiettileBoss.aggiorna(deltaTime);
 
-        beginHDRRender();
+        beginHDRRender(true);
 
         // CAMERA dinamica
         if (faseBoss && transizioneBossAttiva) {
@@ -753,6 +816,41 @@ void gameLoop(GLFWwindow* window) {
             alienoShader.setVec3("material.specular", glm::vec3(0.4f));
             alienoShader.setFloat("material.shininess", 16.0f);
 
+            // --- LUCE per ALIENI (e ogni cosa che usa alienoShader) ---
+            alienoShader.setVec3("viewPos", eyePos);
+
+            // nebbia
+            alienoShader.setVec3("fogColor", glm::vec3(0.01f, 0.02f, 0.05f));
+            alienoShader.setFloat("fogStart", 45.0f);
+            alienoShader.setFloat("fogEnd", 120.0f);
+            alienoShader.setBool("fogEnabled", true);
+
+            // materiale (coerente allo shader alieno.fs proposto)
+            alienoShader.setVec3("material.ambient", glm::vec3(0.25f, 0.25f, 0.30f));
+            alienoShader.setVec3("material.diffuse", glm::vec3(0.25f, 0.25f, 0.30f));
+            alienoShader.setVec3("material.specular", glm::vec3(0.40f));
+            alienoShader.setFloat("material.shininess", 16.0f);
+
+            // --- Spotlight debole agganciato al player ---
+            glm::vec3 spotPos = player.getPos();
+            glm::vec3 spotDir = glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f));
+
+            alienoShader.setVec3("spotlight.position", spotPos);
+            alienoShader.setVec3("spotlight.direction", spotDir);
+            alienoShader.setFloat("spotlight.cutOff", glm::cos(glm::radians(10.0f)));
+            alienoShader.setFloat("spotlight.outerCutOff", glm::cos(glm::radians(18.0f)));
+
+            alienoShader.setVec3("spotlight.ambient", glm::vec3(0.03f));
+            alienoShader.setVec3("spotlight.diffuse", glm::vec3(0.08f));
+            alienoShader.setVec3("spotlight.specular", glm::vec3(0.05f));
+
+            alienoShader.setFloat("spotlight.constant", 1.0f);
+            alienoShader.setFloat("spotlight.linear", 0.18f);
+            alienoShader.setFloat("spotlight.quadratic", 0.08f);
+
+            alienoShader.setFloat("spotStrength", 0.4f);
+
+            alienoShader.setFloat("shininess", 16.0f);
 
             modelBonus.Draw(bonusShader);
 
@@ -890,6 +988,7 @@ void gameLoop(GLFWwindow* window) {
         if (player.isGameOver()) {
             giocoTerminato = true;
             vittoria = false;
+            StopGameplayMusic();
         }
         // FINE GIOCO
         if (boss.isDead() && !bossMorto) {
@@ -900,6 +999,7 @@ void gameLoop(GLFWwindow* window) {
             glm::vec3 posExpl = glm::vec3(boss.getPos().x, boss.getPos().y + 0.8f * 1.8f,
                 player.getPos().z - 10.0f);
             for (int i = 0; i < 10; ++i) sistemaParticelle->emit(posExpl);
+            StopGameplayMusic();
         }
 
         if (bossMorto) {
@@ -914,7 +1014,7 @@ void gameLoop(GLFWwindow* window) {
 
         if (giocoTerminato) break;
 
-        endHDRRender(shaderBloomFinal, shaderBlur);
+        endHDRRender(true,shaderBloomFinal, shaderBlur);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -922,23 +1022,23 @@ void gameLoop(GLFWwindow* window) {
     
     // SCHERMATA FINALE: HAI VINTO / HAI PERSO
     glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
-    beginHDRRender();
+    beginHDRRender(false);
     glDisable(GL_DEPTH_TEST);
 
     std::string messaggio = vittoria ? "HAI VINTO!" : "HAI PERSO!";
     RenderText(messaggio + " - Livello " + std::to_string(livelloCorrente),
-        SCR_WIDTH / 2.0f - 150.0f,
+        SCR_WIDTH / 2.0f - 250.0f,
         SCR_HEIGHT / 2.0f,
         1.0f,
         glm::vec3(1.0f, 0.5f, 0.0f));
 
     RenderText("Premi SPAZIO per tornare al menu",
-        SCR_WIDTH / 2.0f - 180.0f,
+        SCR_WIDTH / 2.0f - 280.0f,
         SCR_HEIGHT / 2.0f - 50.0f,
         0.5f,
         glm::vec3(1.0f));
 
-    endHDRRender(shaderBloomFinal, shaderBlur);
+    endHDRRender(false,shaderBloomFinal, shaderBlur);
     glfwSwapBuffers(window);
 
     // Attendi rilascio del tasto SPAZIO se già premuto
@@ -1054,7 +1154,7 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
         
 
         glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
-        beginHDRRender();
+        beginHDRRender(false);
         glDisable(GL_DEPTH_TEST);
 
         starShader->use();
@@ -1166,7 +1266,7 @@ void apriMenuImpostazioni(GLFWwindow* window, Starfield& starfield, Shader* star
             inImpostazioni = false;
         }
 
-        endHDRRender(shaderBloomFinal, shaderBlur);
+        endHDRRender(false,shaderBloomFinal, shaderBlur);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
     }
