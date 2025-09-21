@@ -22,7 +22,7 @@ public:
                     std::cout << "[COLLISIONE] Player ha impattato un nemico!" << std::endl;
                     player.subisciDanno();
                     player.setIsInvincibile(true);
-                    player.aggiornaInvincibilita(0.0f); // reset immediato
+                    player.aggiornaInvincibilita(0.0f);
 
                     if (player.isGameOver()) {
                         giocoTerminato = true;

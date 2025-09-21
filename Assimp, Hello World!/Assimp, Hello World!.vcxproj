@@ -180,8 +180,6 @@
     <None Include="disintegrazione.vs" />
     <None Include="enemy_shader.fs" />
     <None Include="enemy_shader.vs" />
-    <None Include="esplosione.fs" />
-    <None Include="esplosione.vs" />
     <None Include="health_bar.fs" />
     <None Include="health_bar.vs" />
     <None Include="menu_bg.fs" />

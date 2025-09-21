@@ -94,16 +94,10 @@
     <None Include="mirino.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="esplosione.fs">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="aura.vs">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="aura.fs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="esplosione.vs">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="bonus.vs">
@@ -203,9 +197,6 @@
     <ClInclude Include="proiettile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="suono.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Boss.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -235,6 +226,9 @@
     </ClInclude>
     <ClInclude Include="skybox.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="suono.h">
+      <Filter>Resource Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

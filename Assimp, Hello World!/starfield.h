@@ -7,7 +7,7 @@
 #include "shader_m.h"
 
 struct Star3D {
-    glm::vec3 position; // x, y, z
+    glm::vec3 position;
     float speed;
     glm::vec3 color;
 };

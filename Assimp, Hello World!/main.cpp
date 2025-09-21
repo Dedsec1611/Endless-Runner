@@ -21,7 +21,6 @@
 #include <stack>
 #include <unordered_set>
 
-
 #include "proiettile.h"
 #include "suono.h"
 #include "Boss.h"
@@ -35,7 +34,7 @@
 
 #pragma comment(lib, "irrKlang.lib")
 
-// ========== COSTANTI & VARIABILI GLOBALI ==========
+//COSTANTI & VARIABILI GLOBALI
 unsigned int SCR_WIDTH;
 unsigned int SCR_HEIGHT;
 
@@ -113,7 +112,7 @@ Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
 int livelloCorrente = 1;
 
-// ========== DICHIARAZIONI FUNZIONI ==========
+// DICHIARAZIONI FUNZIONI
 void initCrosshair();
 void drawCrosshair(GLFWwindow* window);
 void processInput(GLFWwindow* window);
@@ -157,10 +156,10 @@ int main() {
 
     glEnable(GL_PROGRAM_POINT_SIZE);
 
-    // Inizializzazione HDR + effetto bloom
+    // Inizializzazione HDR e effetto bloom
     setupHDRBloom(SCR_WIDTH, SCR_HEIGHT);
 
-    // Inizializzazione muri laterali (VAO/VBO)
+    // Inizializzazione muri laterali
     float wallVertices[] = {
         // x, y, z, norm.x, norm.y, norm.z
          1.0f,  1.0f,  0.0f,  1.0f, 0.0f, 0.0f,
@@ -192,13 +191,9 @@ int main() {
         std::cerr << "[ERRORE] Shader principali non validi." << std::endl;
         return -1;
     }
-    // --- SKYBOX (init una volta) ---
+
     skyboxShader = new Shader("skybox.vs", "skybox.fs");
-    //menushader
     menuBgShader = new Shader("menu_bg.vs", "menu_bg.fs");
-
-
-    // Usa l'estensione reale dei tuoi file: .png / .jpg ecc.
     std::vector<std::string> faces = {
         "../src/images/blue/right.png",
         "../src/images/blue/left.png",
@@ -208,7 +203,6 @@ int main() {
         "../src/images/blue/back.png"
     };
     skybox = new Skybox(faces);
-
     background = new Background(backgroundShader);
 
     // Modelli
@@ -224,8 +218,9 @@ int main() {
     tunnel.nemicoShader = &alienoShader;
     tunnel.modelBonus = modelBonus;
 
-    // Loop dei livelli (infinite run)
+    // Loop dei livelli
     while (!glfwWindowShouldClose(window)) {
+
         // Reset stato
         giocoTerminato = false;
         vittoria = false;
@@ -240,16 +235,14 @@ int main() {
         tempoBoss = 10.0f + livelloCorrente * 5.0f;
         intervalloGenerazioneNemici = std::max(1.0f, 3.0f - 0.2f * livelloCorrente);
 
-        // Reinstanzia player/boss/tunnel
         player = Player();
         boss = Boss();
         tunnel.livelloCorrente = livelloCorrente;
         tunnel.init();
 
-        // Avvia loop principale
+        // Loop principale
         gameLoop(window);
 
-        // Avanzamento livello
         if (vittoria)
             livelloCorrente++;
         else
@@ -323,7 +316,6 @@ void setupHDRBloom(int width, int height) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // Ping-pong FBO per blur
     glGenFramebuffers(2, pingpongFBO);
     glGenTextures(2, pingpongColorbuffers);
     for (unsigned int i = 0; i < 2; ++i) {
@@ -398,19 +390,17 @@ void beginHDRRender(bool isActive)
  {
      if (!gSoundEngine) return;
 
-     // se era già in riproduzione, evita doppioni
      if (gBgMusic) {
          gBgMusic->stop();
          gBgMusic->drop();
          gBgMusic = nullptr;
      }
 
-     // preload in pausa, poi settiamo volume e partiamo
      gBgMusic = gSoundEngine->play2D(path, /*looped*/ true, /*startPaused*/ true, /*track*/ true);
      if (!gBgMusic) return;
 
      gBgMusic->setVolume(glm::clamp(volume01, 0.0f, 1.0f));
-     gBgMusic->setIsPaused(!enabled); // se audio OFF, rimane in pausa
+     gBgMusic->setIsPaused(!enabled); 
  }
 
  inline void StopGameplayMusic()
@@ -465,12 +455,12 @@ void initParticleSystem(SistemaParticelle*& system, Shader*& particleShader, GLu
     system->setShader(particleShader);
     textureID = loadParticleTexture("../src/images/esplosione.png");
 }
+
 void gameLoop(GLFWwindow* window) {
     glEnable(GL_DEPTH_TEST);
     initRenderText(SCR_WIDTH, SCR_HEIGHT);
     std::unordered_set<const void*> nemiciEsplosiUnaVolta;
 
-    // 🔧 view e projection resi disponibili in tutta la funzione
     glm::mat4 view;
     glm::mat4 projection;
 
@@ -497,7 +487,8 @@ void gameLoop(GLFWwindow* window) {
 
     shaderBlur = Shader("blur.vs", "blur.fs");
     shaderBloomFinal = Shader("bloom_final.vs", "bloom_final.fs");
-    shaderBlur.use();         shaderBlur.setInt("image", 0);
+    shaderBlur.use();
+    shaderBlur.setInt("image", 0);
     shaderBloomFinal.use();
     shaderBloomFinal.setFloat("saturation", 1.3f);
     shaderBloomFinal.setFloat("contrast", 1.0f);
@@ -505,7 +496,6 @@ void gameLoop(GLFWwindow* window) {
     shaderBloomFinal.setFloat("exposure", 0.9f);
 
     // Skybox
-    //starShader = new Shader("star.vs", "star.fs");
     Starfield starfield(200, SCR_WIDTH, SCR_HEIGHT);
     BossStarfield bossStarfield(200, SCR_WIDTH, SCR_HEIGHT);
 
@@ -534,7 +524,6 @@ void gameLoop(GLFWwindow* window) {
     tunnel.bonusOutlineShader = &bonusOutlineShader;
     tunnel.particleSystem = sistemaParticelle;
     tunnel.init();
-    // Vincola i nemici dentro la “staccionata”
     const float kCorridorHalfWidth = 6.0f;
     const float enemyMargin = 0.8f;
     for (auto& seg : tunnel.segments) {
@@ -562,7 +551,7 @@ void gameLoop(GLFWwindow* window) {
     proiettileBoss.setSpeed(5.0f);
 
     initCrosshair();
-    // ─────────────────────────────
+
     // MENU INIZIALE
     bool startGame = false;
     while (!startGame && !glfwWindowShouldClose(window)) {
@@ -573,7 +562,6 @@ void gameLoop(GLFWwindow* window) {
         beginHDRRender(false);
         glDisable(GL_DEPTH_TEST);
 
-        // 1) SFONDO MENU (nebula + vignette + scanlines)
         if (menuBgShader) {
             menuBgShader->use();
             menuBgShader->setFloat("time", currentFrame);
@@ -581,15 +569,13 @@ void gameLoop(GLFWwindow* window) {
             renderQuad();
         }
 
-        // 2) STARFIELD sopra allo sfondo
         starShader->use();
         starShader->setFloat("time", currentFrame);
         starShader->setVec2("screenCenter", glm::vec2(0.5f, 0.5f));
-        starShader->setFloat("warp", 2.2f); // più tranquillo nel menu
+        starShader->setFloat("warp", 2.2f); 
         starfield.update(deltaTime);
         starfield.render();
 
-        // 3) TESTI con effetto “pulse”
         float pulse = 0.5f + 0.5f * sin(currentFrame * 2.0f);
         glm::vec3 titleCol = glm::mix(glm::vec3(0.3f, 1.0f, 1.0f), glm::vec3(0.9f, 1.0f, 1.0f), pulse);
         glm::vec3 hintCol = glm::mix(glm::vec3(0.8f), glm::vec3(1.0f), pulse * 0.5f);
@@ -599,7 +585,6 @@ void gameLoop(GLFWwindow* window) {
         RenderText("PREMI 2 PER IMPOSTAZIONI", 100.0f, 340.0f, 0.5f, hintCol);
         RenderText("ESC per uscire", 100.0f, 280.0f, 0.45f, glm::vec3(0.85f));
 
-        // 4) Chiudi HDR PRIMA dello swap (fix)
         endHDRRender(false,shaderBloomFinal, shaderBlur);
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -608,15 +593,13 @@ void gameLoop(GLFWwindow* window) {
             glfwSetWindowShouldClose(window, true);
         if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
             startGame = true;
-            const char* kGameplayMusic = "../src/sounds/musicaSottofondo.wav";
+            const char* kGameplayMusic = "../src/sounds/star-wars-battle.mp3";
             StartGameplayMusic(kGameplayMusic, /*volume*/ suono.getVolumeGlobale(), /*enabled*/ suono.getAttivoGlobale());
             SetGameplayMusicEnabled(suono.getAttivoGlobale());
         if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
             apriMenuImpostazioni(window, starfield, starShader, suono);
     }
 
-
-    // ─────────────────────────────
     // CICLO DI GIOCO PRINCIPALE
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = glfwGetTime();
@@ -638,10 +621,9 @@ void gameLoop(GLFWwindow* window) {
 
         processInput(window);
         player.aggiorna(window, deltaTime);
-        // Clamp X del player dentro le staccionate
         {
             const float kCorridorHalfWidth = 6.0f;
-            const float playerMargin = 0.8f; // "raggio" del player
+            const float playerMargin = 0.8f;
             auto p = player.getPos();
             p.x = glm::clamp(p.x,
                 -kCorridorHalfWidth + playerMargin,
@@ -675,7 +657,6 @@ void gameLoop(GLFWwindow* window) {
             );
         }
         else {
-            // camera “inseguimento” con roll
             float roll = glm::clamp(player.getPos().x * 0.04f, -0.35f, 0.35f); // inclina con X
             glm::mat4 base = glm::translate(glm::mat4(1.0f),
                 glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
@@ -686,10 +667,7 @@ void gameLoop(GLFWwindow* window) {
         projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 120.0f);
         glm::vec3 eyePos = glm::vec3(glm::inverse(view)[3]);
 
-
-        // SKYBOX
         skybox->Draw(*skyboxShader, view, projection);
-
 
         // RENDER NAVICELLA
         playerShader.use();
@@ -710,7 +688,7 @@ void gameLoop(GLFWwindow* window) {
 
         glDisable(GL_CULL_FACE);
 
-        // --- RENDER MURI (staccionata) ---
+        // --- RENDER MURI ---
         bool inBossFight = (faseBoss && !transizioneBossAttiva) ? true : false;
         if (!inBossFight) {
             const float kCorridorHalfWidth = 6.0f;
@@ -730,9 +708,9 @@ void gameLoop(GLFWwindow* window) {
             wallShader.setBool("spaceMode", true);
             wallShader.setFloat("time", glfwGetTime());
             wallShader.setVec3("viewPos", eyePos);
-            wallShader.setVec3("fenceTint", glm::vec3(0.25f, 0.6f, 1.0f)); // azzurrino
+            wallShader.setVec3("fenceTint", glm::vec3(0.25f, 0.6f, 1.0f)); 
             wallShader.setFloat("fenceHeight", kFenceHeight);
-            wallShader.setFloat("starDensity", 0.015f); // 0.005—0.03
+            wallShader.setFloat("starDensity", 0.015f); 
 
             glBindVertexArray(wallVAO);
 
@@ -742,7 +720,6 @@ void gameLoop(GLFWwindow* window) {
                 glm::mat4 m(1.0f);
                 m = glm::translate(m, glm::vec3(x, 0.0f, z));
                 if (x > 0.0f) {
-                    // muro destro: flip su X per rivolgere la normale verso l’interno
                     m = glm::scale(m, glm::vec3(-1.0f, 1.0f, 1.0f));
                 }
                 m = glm::scale(m, glm::vec3(kFenceThickness, kFenceHeight, kSegLen));
@@ -798,7 +775,6 @@ void gameLoop(GLFWwindow* window) {
             bonusShader.setVec3("material.specular", glm::vec3(0.5f));
             bonusShader.setFloat("material.shininess", 16.0f);
 
-            // --- LUCE per ALIENI (e ogni cosa che usa alienoShader) ---
             alienoShader.use();
             alienoShader.setVec3("viewPos", eyePos);
             alienoShader.setVec3("light.position", glm::vec3(0.0f, 10.0f, eyePos.z + 10.0f));
@@ -810,13 +786,12 @@ void gameLoop(GLFWwindow* window) {
             alienoShader.setFloat("fogEnd", 120.0f);
             alienoShader.setBool("fogEnabled", true);
 
-            // materiale “standard” per alieni (adatta a gusto)
             alienoShader.setVec3("material.ambient", glm::vec3(0.25f, 0.25f, 0.3f));
             alienoShader.setVec3("material.diffuse", glm::vec3(0.25f, 0.25f, 0.3f));
             alienoShader.setVec3("material.specular", glm::vec3(0.4f));
             alienoShader.setFloat("material.shininess", 16.0f);
 
-            // --- LUCE per ALIENI (e ogni cosa che usa alienoShader) ---
+            // --- LUCE per ALIENI ---
             alienoShader.setVec3("viewPos", eyePos);
 
             // nebbia
@@ -825,13 +800,11 @@ void gameLoop(GLFWwindow* window) {
             alienoShader.setFloat("fogEnd", 120.0f);
             alienoShader.setBool("fogEnabled", true);
 
-            // materiale (coerente allo shader alieno.fs proposto)
             alienoShader.setVec3("material.ambient", glm::vec3(0.25f, 0.25f, 0.30f));
             alienoShader.setVec3("material.diffuse", glm::vec3(0.25f, 0.25f, 0.30f));
             alienoShader.setVec3("material.specular", glm::vec3(0.40f));
             alienoShader.setFloat("material.shininess", 16.0f);
 
-            // --- Spotlight debole agganciato al player ---
             glm::vec3 spotPos = player.getPos();
             glm::vec3 spotDir = glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f));
 
@@ -857,7 +830,6 @@ void gameLoop(GLFWwindow* window) {
             tunnel.update(deltaTime, player.getPos().z);
             tunnel.draw(alienoShader, view, projection, proiettileNavicella, proiettileNavicella, player, giocoTerminato, nemiciAttivi);
 
-           
             for (auto* nemici : tunnel.getTuttiINemici()) {
                 GestoreCollisioni::gestisciCollisioneConNemici(*nemici, player, nemiciAttivi, giocoTerminato);
             }
@@ -868,7 +840,6 @@ void gameLoop(GLFWwindow* window) {
                         if (!n.vivo) {
                             const void* key = static_cast<const void*>(&n);
                             if (nemiciEsplosiUnaVolta.insert(key).second) {
-                                // burst: più particelle = effetto visibile
                                 glm::vec3 p = n.position + glm::vec3(0.0f, 0.4f, 0.0f);
                                 sistemaParticelle->emit(p);
 
@@ -877,10 +848,10 @@ void gameLoop(GLFWwindow* window) {
                     }
                 }
             }
-            // --- Collisione PROIETTILE ⇄ NEMICI + EMIT PARTICELLE ---
+            // --- Collisione PROIETTILE ---
             if (sistemaParticelle) {
                 auto bulletPos = proiettileNavicella.getVecPos();  
-                float halfLen = proiettileNavicella.getLunghezza() * 0.5f; // se 0, lascia pure 0
+                float halfLen = proiettileNavicella.getLunghezza() * 0.5f;
 
                 for (int bi = (int)bulletPos.size() - 1; bi >= 0; --bi) {
                     glm::vec2 bulletHead(bulletPos[bi].x, bulletPos[bi].z - halfLen);
@@ -891,13 +862,11 @@ void gameLoop(GLFWwindow* window) {
                             if (!n.vivo || n.isBonus) continue;
 
                             glm::vec2 enemyCenter(n.position.x, n.position.z);
-                            float rEnemy = 0.8f; // “raggio” hitbox nemico (adatta a gusto)
+                            float rEnemy = 0.8f; 
                             if (glm::distance(bulletHead, enemyCenter) < rEnemy) {
                                 n.vivo = false;
                                 proiettileNavicella.eliminaInPos(bi);
                                 removed = true;
-
-                                // esplosione singola con burst visibile
                                 glm::vec3 p = n.position + glm::vec3(0.0f, 0.4f, 0.0f);
                                 for (int i = 0; i < 30; ++i) sistemaParticelle->emit(p);
                                 break;
@@ -908,14 +877,10 @@ void gameLoop(GLFWwindow* window) {
                 }
             }
 
-
-
-
             glDisable(GL_DEPTH_TEST);
             starShader->use();
             starShader->setFloat("time", glfwGetTime());
             starShader->setVec2("screenCenter", glm::vec2(0.5f, 0.5f));
-            // più "warp" durante transizione/boss, più tranquillo in corsa
             float warp = (faseBoss || transizioneBossAttiva) ? 6.0f : 2.5f;
             starShader->setFloat("warp", warp);
             starfield.update(deltaTime);
@@ -929,7 +894,6 @@ void gameLoop(GLFWwindow* window) {
             starShader->use();
             starShader->setFloat("time", glfwGetTime());
             starShader->setVec2("screenCenter", glm::vec2(0.5f, 0.5f));
-            // più "warp" durante transizione/boss, più tranquillo in corsa
             float warp = (faseBoss || transizioneBossAttiva) ? 6.0f : 2.5f;
             starShader->setFloat("warp", warp);
             bossStarfield.update(deltaTime);
@@ -953,7 +917,6 @@ void gameLoop(GLFWwindow* window) {
      
             sistemaParticelle->update(deltaTime);
 
-     
             GLboolean wasCull = glIsEnabled(GL_CULL_FACE);
             GLboolean wasDepth = glIsEnabled(GL_DEPTH_TEST);
             GLint depthMask; glGetIntegerv(GL_DEPTH_WRITEMASK, &depthMask);
@@ -982,20 +945,14 @@ void gameLoop(GLFWwindow* window) {
         }
 
 
-
-
-        // FINE GIOCO
         if (player.isGameOver()) {
             giocoTerminato = true;
             vittoria = false;
             StopGameplayMusic();
         }
-        // FINE GIOCO
         if (boss.isDead() && !bossMorto) {
             bossMorto = true;
             timerPostMorteBoss = 0.0f;
-
-            // burst extra per dare enfasi
             glm::vec3 posExpl = glm::vec3(boss.getPos().x, boss.getPos().y + 0.8f * 1.8f,
                 player.getPos().z - 10.0f);
             for (int i = 0; i < 10; ++i) sistemaParticelle->emit(posExpl);
@@ -1004,7 +961,6 @@ void gameLoop(GLFWwindow* window) {
 
         if (bossMorto) {
             timerPostMorteBoss += deltaTime;
-            // dopo 1.2s passa alla schermata finale
             if (timerPostMorteBoss > 1.2f) {
                 giocoTerminato = true;
                 vittoria = true;
@@ -1018,8 +974,8 @@ void gameLoop(GLFWwindow* window) {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-    // ──────────────────────────────────────────────
-    
+
+
     // SCHERMATA FINALE: HAI VINTO / HAI PERSO
     glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
     beginHDRRender(false);
@@ -1040,13 +996,9 @@ void gameLoop(GLFWwindow* window) {
 
     endHDRRender(false,shaderBloomFinal, shaderBlur);
     glfwSwapBuffers(window);
-
-    // Attendi rilascio del tasto SPAZIO se già premuto
     while (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !glfwWindowShouldClose(window)) {
         glfwPollEvents();
     }
-
-    // Attendi nuova pressione di SPAZIO per continuare
     bool attesaPressione = true;
     while (attesaPressione && !glfwWindowShouldClose(window)) {
         glfwPollEvents();

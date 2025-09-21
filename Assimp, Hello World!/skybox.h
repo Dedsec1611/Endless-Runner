@@ -23,4 +23,4 @@ private:
     unsigned int loadCubemap(const std::vector<std::string>& faces);
 };
 
-#endif // SKYBOX_H
+#endif 

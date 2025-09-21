@@ -69,7 +69,7 @@ public:
         maxHealth = health;
         speed = 2.0f + 0.2f * (livello - 1);
         shootInterval = std::max(0.5, 1.5 - 0.1 * (livello - 1));
-        baseX = pos.x;             // <- memorizza centro oscillazione
+        baseX = pos.x;            
     }
 
 
@@ -81,17 +81,14 @@ public:
         std::cout << "[DEBUG] Time: " << currentTime
             << ", lastShot: " << lastShotTime
             << ", intervallo: " << shootInterval << std::endl;
-        // movimento autonomo (sinus X) + bobbing Y
         pos.x = baseX + movementRange * sin(currentTime * moveFreq + 0.3 * livello);
         pos.y = 0.5f * sin(currentTime * bobFreq);
 
-        // spara come prima
         if (currentTime - lastShotTime > shootInterval) {
             shoot();
             lastShotTime = currentTime;
         }
 
-        // update proiettili boss
         for (auto& p : proiettili) {
             p.setTranslateSpeed(p.getSpeed() * deltaTime);
         }
@@ -136,13 +133,10 @@ public:
 
         shader.use();
 
-        // Mantieni il boss davanti al player di ~10 unità in Z:
+
         glm::vec3 posWorld = pos;
         posWorld.z = player.getPos().z - 10.0f;
 
-        // MODEL MATRIX CORRETTA
-        /*glm::mat4 modelMat = glm::translate(glm::mat4(1.0f), posWorld);
-        modelMat = glm::scale(modelMat, glm::vec3(scale));*/
          glm::mat4 modelMat = glm::translate(glm::mat4(1.0f), pos);
         modelMat = glm::translate(modelMat, glm::vec3(0.0f, -5.0f, 0.0f));
         modelMat = glm::scale(modelMat, glm::vec3(5.0f));
@@ -150,7 +144,6 @@ public:
         shader.setMat4("view", view);
         shader.setMat4("projection", projection);
 
-        // ─── ILUMINAZIONE PHONG ────────────────────────────────────────────
         glm::vec3 lightPos(0.0f, 10.0f, player.getPos().z + 10.0f);
         shader.setVec3("viewPos", player.getPos());
         shader.setVec3("light.position", lightPos);
@@ -161,11 +154,10 @@ public:
         shader.setVec3("material.diffuse", glm::vec3(0.6f, 0.2f, 0.2f));
         shader.setVec3("material.specular", glm::vec3(0.7f, 0.7f, 0.7f));
         shader.setFloat("material.shininess", 32.0f);
-        // ─────────────────────────────────────────────────────────────────────
         shader.setBool("useSpotlight", true);
 
-        glm::vec3 spotlightPos = player.getPos() + glm::vec3(0.0f, 0.0f, 5.0f);  // poco davanti al player
-        glm::vec3 spotlightDir = glm::normalize(pos - spotlightPos);             // punta verso il boss
+        glm::vec3 spotlightPos = player.getPos() + glm::vec3(0.0f, 0.0f, 5.0f);  
+        glm::vec3 spotlightDir = glm::normalize(pos - spotlightPos);             
 
         shader.setVec3("spotlight.position", spotlightPos);
         shader.setVec3("spotlight.direction", spotlightDir);
@@ -183,7 +175,7 @@ public:
 
 
         // Aura rossa dietro al boss
-		glDepthMask(GL_FALSE); // non vogliamo che sia coperta
+		glDepthMask(GL_FALSE); 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         auraShader.use();
@@ -193,7 +185,6 @@ public:
         auraShader.setMat4("view", view);
         auraShader.setMat4("projection", projection);
 
-        // ─── ILUMINAZIONE PHONG (stessi valori) ────────────────────────────
         auraShader.setVec3("viewPos", player.getPos());
         auraShader.setVec3("light.position", lightPos);
         auraShader.setVec3("light.ambient", glm::vec3(0.1f));
@@ -203,11 +194,11 @@ public:
         auraShader.setVec3("material.diffuse", glm::vec3(0.6f, 0.2f, 0.2f));
         auraShader.setVec3("material.specular", glm::vec3(0.7f, 0.7f, 0.7f));
         auraShader.setFloat("material.shininess", 32.0f);
-        // ─────────────────────────────────────────────────────────────────────
         model.Draw(auraShader);
 
         glDisable(GL_BLEND);
-		glDepthMask(GL_TRUE); // riattiva depth mask
+		glDepthMask(GL_TRUE); 
+
         // Proiettili
         proiettileShader.use();
         proiettileShader.setMat4("view", view);
@@ -263,8 +254,7 @@ public:
         barShader.setMat4("view", view);
         barShader.setMat4("projection", projection);
 
-        glDisable(GL_DEPTH_TEST); // non vogliamo che sia coperta
-
+        glDisable(GL_DEPTH_TEST); 
         glBindVertexArray(healthBarVAO);
 
         // Bordo
@@ -292,10 +282,7 @@ public:
         glEnable(GL_DEPTH_TEST);
     }
     void checkIsHitted(Proiettile& proiettile, const Player& player) {
-        // boss world-Z: sempre davanti al player di 10
         float bossZ = player.getPos().z - 10.0f;
-
-        // ATTENZIONE: getVecPos() ritorna per valore: salvalo in una variabile
         auto bullets = proiettile.getVecPos();
         for (int i = 0; i < (int)bullets.size(); ++i) {
             float proiettile_x = bullets[i].x;
@@ -330,7 +317,7 @@ public:
             glm::vec3 posBullet = proiettili[i].getVecPos()[0];
             float distanza = glm::distance(glm::vec2(posBullet.x, posBullet.z), glm::vec2(player.getPos().x, player.getPos().z));
             if (distanza < 0.5f) {
-                std::cout << "[BOSS] Il player � stato colpito!" << std::endl;
+                std::cout << "[BOSS] Il player stato colpito!" << std::endl;
                 player.subisciDanno();
                 if (player.isGameOver()) {
                     giocoTerminato = true;

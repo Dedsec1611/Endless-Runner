@@ -10,7 +10,6 @@ Skybox::Skybox(const std::vector<std::string>& faces)
 
 void Skybox::setupSkybox()
 {
-    // 36 vertices: cube without indices (triangles)
     static const float skyboxVertices[] = {
         // positions
         -1.0f,  1.0f, -1.0f,
@@ -104,15 +103,12 @@ unsigned int Skybox::loadCubemap(const std::vector<std::string>& faces)
 
 void Skybox::Draw(const Shader& shader, const glm::mat4& view, const glm::mat4& projection) const
 {
-    // Non scrivere sul depth buffer e leggi con LEQUAL per lo sfondo
     glDepthMask(GL_FALSE);
     glDepthFunc(GL_LEQUAL);
 
     shader.use();
-    // assicurati che lo uniform sampler sia sull'unità 0 (chiamalo almeno una volta)
     shader.setInt("skybox", 0);
 
-    // rimuovi la traslazione dalla view (la cubemap "segue" la camera)
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
     shader.setMat4("view", viewNoTrans);
     shader.setMat4("projection", projection);

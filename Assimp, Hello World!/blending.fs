@@ -9,12 +9,10 @@ uniform float alpha;
 
 void main()
 {             
-    vec4 texColor = texture(texture_diffuse1, TexCoords); // Otteniamo il colore della texture come vec4
-    texColor.a = alpha; // Impostiamo l'alpha
+    vec4 texColor = texture(texture_diffuse1, TexCoords); 
+    texColor.a = alpha; 
 
-    // Impostiamo BrightColor come nero (potrebbe essere diverso se vuoi effetti di luminosità)
     BrightColor = vec4(0.0, 0.0, 0.0, 0.0);
 
-    // Impostiamo FragColor con il colore della texture e l'alpha modificati
     FragColor = texColor;
 }
