@@ -6,15 +6,17 @@
 #include "model.h"
 #include "proiettile.h"
 #include <iostream>
+#include "SistemaParticelle.h"
 
 class Player {
 private:
     glm::vec3 posizione;
     Model model;
     Shader shader;
-
-    bool puoSparare = false;
-    float timerBonusSparo = 0.0f;
+    SistemaParticelle* particleSystem = nullptr;
+    float particleCooldown = 0.0f;
+    bool puoSparare = true;
+    float timerBonusSparo = 100000000000000000000000000000000000.0f;
     bool spazioPremutoPrima = false;
     float tempoUltimoSparo = 0.0f;
     float intervalloSparo = 0.2f;
@@ -42,6 +44,7 @@ public:
 
     void setModel(const Model& m) { model = m; }
     void setShader(const Shader& s) { shader = s; }
+    void setParticleSystem(SistemaParticelle* ps) { particleSystem = ps; }
 
     glm::vec3 getPos() const { return posizione; }
     void setPos(glm::vec3 p) {
@@ -182,10 +185,28 @@ public:
         shader.setMat4("model", modelMatrix);
         if (invincibile) {
             float blink = sin(glfwGetTime() * 10.0f);
-            if (blink < 0.0f) return; // lampeggia
+            if (blink < 0.0f) return; 
         }
 
         model.Draw(shader);
+        if (particleSystem) {
+            particleCooldown -= 0.016f; 
+            if (particleCooldown <= 0.0f) {
+                glm::vec3 posEmissione = posizione + glm::vec3(0.0f, -0.2f, 1.2f);
+
+                for (int i = 0; i < 3; i++) {
+                    glm::vec3 jitter(
+                        ((rand() % 100) / 100.0f - 0.5f) * 0.2f,
+                        ((rand() % 100) / 100.0f - 0.5f) * 0.2f,
+                        ((rand() % 100) / 100.0f) * 0.1f
+                    );
+                    float size = 0.3f + ((rand() % 100) / 100.0f) * 0.2f;
+                    particleSystem->emit(posEmissione + jitter, size);
+                }
+
+                particleCooldown = 0.02f; 
+            }
+        }
     }
 
     void inizializzaProiettile(Proiettile& p) {

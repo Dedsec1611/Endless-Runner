@@ -51,11 +51,11 @@ public:
     }
 
     void init() {
-        maxSegments = 50;  // Copre 100 secondi di gioco
+        maxSegments = 50; 
 
-        segments.clear(); // Pulisce eventuali segmenti precedenti
+        segments.clear();
 
-        float distanzaIniziale = 40.0f; // parte distante dalla navicella
+        float distanzaIniziale = 40.0f; 
         for (int i = 0; i < maxSegments; ++i) {
             TunnelSegment segment;
             segment.position = glm::vec3(0.0f, 0.0f, -i * segmentLength - distanzaIniziale);

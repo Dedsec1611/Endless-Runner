@@ -72,7 +72,7 @@ unsigned int Skybox::loadCubemap(const std::vector<std::string>& faces)
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
     int width, height, nrChannels;
-    stbi_set_flip_vertically_on_load(false); // le cubemap non vanno capovolte
+    stbi_set_flip_vertically_on_load(false); 
 
     for (unsigned int i = 0; i < faces.size(); i++)
     {

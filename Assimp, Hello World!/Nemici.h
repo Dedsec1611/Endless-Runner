@@ -33,8 +33,8 @@ private:
     Shader* bonusOutlineShader = nullptr;
     SistemaParticelle* sistemaParticelle = nullptr;
 
-    int minNemici = 4;
-    int maxNemici = 8;
+    int minNemici = 3;
+    int maxNemici = 5;
     int maxBonusPerSegmento = 1;
     float areaX = 10.0f;
     float areaZ = 12.0f;
@@ -66,7 +66,7 @@ public:
         int bonusCount = 0;
 
         std::vector<glm::vec3> posizioniOccupate;
-        float distanzaMinima = 4.0f;
+        float distanzaMinima = 6.0f;
 
         int creati = 0;
         int tentativiTotali = 0;
@@ -139,8 +139,7 @@ public:
             frequenza = std::min(frequenza, maxFrequenza);
 
             n.position.x = n.baseX + ampiezza * std::sin(frequenza * n.animationTime);
-            // Clamp dentro il corridoio centrato su basePosition.x
-            float lim = areaX; // semi-larghezza consentita
+            float lim = areaX;
             n.position.x = glm::clamp(n.position.x,
                 basePosition.x - lim,
                 basePosition.x + lim);
@@ -161,7 +160,6 @@ public:
             glm::mat4 modelMatrix = glm::mat4(1.0f);
             modelMatrix = glm::translate(modelMatrix, n.position);
 
-            // Animazione dinamica: scala pulsante e leggera rotazione
             float scale = n.isBonus ? 0.01f : 0.25f + 0.05f * std::sin(n.animationTime * 2.0f);
             modelMatrix = glm::scale(modelMatrix, glm::vec3(scale));
 
@@ -201,7 +199,6 @@ public:
         }
     }
 
-    //TODO creazione esplosione
     void checkCollisionWithPlayer(Player& player, Proiettile& proiettile, bool& giocoTerminato, bool& nemiciAttivi) {
         for (auto& n : nemici) {
             if (!n.vivo) continue;
@@ -232,26 +229,40 @@ public:
     }
 
     void checkCollision(Proiettile& proiettile, Player& player) {
-        for (auto& n : nemici) {
-            if (!n.vivo) continue;
-            for (int i = 0; i < proiettile.getVecPos().size(); i++) {
-                glm::vec3 posProj = proiettile.getVecPos()[i];
-                float dist = glm::distance(glm::vec2(posProj.x, posProj.z), glm::vec2(n.position.x, n.position.z));
-                if (dist < raggio) {
-                    if (n.isBonus && !player.haBonusSparo() && !proiettile.getBonusStatoAllaCreazione()[i]) {
+        for (int i = static_cast<int>(proiettile.getVecPos().size()) - 1; i >= 0; --i) {
+            glm::vec3 posProj = proiettile.getVecPos()[i];
+
+            for (auto& n : nemici) {
+                if (!n.vivo) continue;
+
+                float scalaNemico = n.isBonus ? 0.01f : 0.25f;
+                float raggioEffettivo = raggio * scalaNemico * 6.0f; 
+
+                float dist = glm::distance(posProj, n.position);
+                if (dist < raggioEffettivo) {
+                    if (n.isBonus && !player.haBonusSparo() &&
+                        i < static_cast<int>(proiettile.getBonusStatoAllaCreazione().size()) && !proiettile.getBonusStatoAllaCreazione()[i])
+                    {
                         player.abilitaSparoTemporaneo(5.0f);
                     }
                     else {
                         std::cout << "[COLLISIONE] Player ha colpito un nemico!" << std::endl;
                     }
+
                     n.vivo = false;
-                    if (sistemaParticelle) sistemaParticelle->emit(n.position);
+
+                    if (sistemaParticelle) {
+                        sistemaParticelle->emit(n.position);
+                    }
+
                     proiettile.eliminaInPos(i);
+
                     break;
                 }
             }
         }
     }
+
 
     void setBonusShader(Shader* shader) { bonusShader = shader; }
     void setBonusOutlineShader(Shader* shader) { bonusOutlineShader = shader; }
@@ -263,7 +274,6 @@ public:
         return true;
     }
     void setCorridorHalfWidth(float halfWidth, float margin) {
-        // areaX viene usata sia per lo spawn che per il clamp del movimento
         areaX = std::max(0.0f, halfWidth - margin);
     }
 

@@ -5,7 +5,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <irrKlang/irrKlang.h>
-
 #include "render_text.h"
 #include "shader_m.h"
 #include "camera.h"
@@ -28,6 +27,7 @@
 #include "Player.h"
 #include "Tunnel.h"
 #include "Background.h"
+#include "Illuminazione.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -112,6 +112,7 @@ Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
 int livelloCorrente = 1;
 
+static SpotlightController gSpot;
 // DICHIARAZIONI FUNZIONI
 void initCrosshair();
 void drawCrosshair(GLFWwindow* window);
@@ -514,7 +515,7 @@ void gameLoop(GLFWwindow* window) {
 
     // Sistema particellare
     initParticleSystem(sistemaParticelle, particellaShader, particellaTexture);
-
+    player.setParticleSystem(sistemaParticelle);
     // Tunnel setup
     std::vector<Model> modelliNemici = { modelAlieno1, modelAlieno2, modelAlieno3 };
     tunnel.setModelliNemici(modelliNemici);
@@ -536,7 +537,7 @@ void gameLoop(GLFWwindow* window) {
     boss.setShader(bossShader);
     boss.setProiettileShader(proiettileShader);
     boss.setProiettileModel(modelCubo);
-    //boss.setAuraShader(bossAuraShader);
+    boss.setAuraShader(bossAuraShader);
     boss.initHealthBar();
     boss.setPos(player.getPos() + glm::vec3(0.0f, 0.0f, -10.0f));
     boss.setScale(1.8f);
@@ -657,7 +658,7 @@ void gameLoop(GLFWwindow* window) {
             );
         }
         else {
-            float roll = glm::clamp(player.getPos().x * 0.04f, -0.35f, 0.35f); // inclina con X
+            float roll = glm::clamp(player.getPos().x * 0.04f, -0.35f, 0.35f);
             glm::mat4 base = glm::translate(glm::mat4(1.0f),
                 glm::vec3(0.0f, -1.5f, -player.getPos().z - 5.0f));
             view = glm::rotate(base, -roll, glm::vec3(0, 0, 1));
@@ -666,7 +667,7 @@ void gameLoop(GLFWwindow* window) {
         float fov = (faseBoss ? 66.0f : 60.0f);
         projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 120.0f);
         glm::vec3 eyePos = glm::vec3(glm::inverse(view)[3]);
-
+        gSpot.setBehindPlayer(player.getPos(), glm::vec3(0, 0, -1), 6.0f, 1.2f);
         skybox->Draw(*skyboxShader, view, projection);
 
         // RENDER NAVICELLA
@@ -688,7 +689,7 @@ void gameLoop(GLFWwindow* window) {
 
         glDisable(GL_CULL_FACE);
 
-        // --- RENDER MURI ---
+        // RENDER MURI
         bool inBossFight = (faseBoss && !transizioneBossAttiva) ? true : false;
         if (!inBossFight) {
             const float kCorridorHalfWidth = 6.0f;
@@ -704,7 +705,6 @@ void gameLoop(GLFWwindow* window) {
             wallShader.setMat4("view", view);
             wallShader.setMat4("projection", projection);
 
-            // modalità spazio + parametri estetici
             wallShader.setBool("spaceMode", true);
             wallShader.setFloat("time", glfwGetTime());
             wallShader.setVec3("viewPos", eyePos);
@@ -791,7 +791,7 @@ void gameLoop(GLFWwindow* window) {
             alienoShader.setVec3("material.specular", glm::vec3(0.4f));
             alienoShader.setFloat("material.shininess", 16.0f);
 
-            // --- LUCE per ALIENI ---
+            // LUCE per ALIENI
             alienoShader.setVec3("viewPos", eyePos);
 
             // nebbia
@@ -833,7 +833,7 @@ void gameLoop(GLFWwindow* window) {
             for (auto* nemici : tunnel.getTuttiINemici()) {
                 GestoreCollisioni::gestisciCollisioneConNemici(*nemici, player, nemiciAttivi, giocoTerminato);
             }
-            // ── ESPLOSIONI PARTICELLARI PER NEMICI APPENA MORTI ───────────────
+            //ESPLOSIONI PARTICELLARI PER NEMICI APPENA MORTI
             if (sistemaParticelle) {
                 for (auto* gruppo : tunnel.getTuttiINemici()) {
                     for (auto& n : gruppo->getNemiciRiferimento()) {
@@ -848,7 +848,7 @@ void gameLoop(GLFWwindow* window) {
                     }
                 }
             }
-            // --- Collisione PROIETTILE ---
+            //Collisione PROIETTILE
             if (sistemaParticelle) {
                 auto bulletPos = proiettileNavicella.getVecPos();  
                 float halfLen = proiettileNavicella.getLunghezza() * 0.5f;

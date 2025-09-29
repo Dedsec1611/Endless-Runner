@@ -230,6 +230,9 @@
     <ClInclude Include="suono.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
+    <ClInclude Include="Illuminazione.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="EndlessRunner.rc">

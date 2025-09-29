@@ -10,9 +10,9 @@ struct Particella {
     glm::vec3 velocity;
     float life;
     glm::vec4 color;
-
+    float size;
     Particella()
-        : position(0.0f), velocity(0.0f), life(0.0f), color(1.0f) {}
+        : position(0.0f), velocity(0.0f), life(0.0f), color(1.0f), size(1.0f) {}
 };
 
 class SistemaParticelle {
@@ -35,6 +35,14 @@ public:
             particles[index].velocity = glm::sphericalRand(1.0f) * 3.0f;
             particles[index].color = glm::vec4(1.0f, 0.5f, 0.0f, 1.0f);
         }
+    }
+    void emit(const glm::vec3& pos, float size) {
+        int index = findUnusedParticle();
+        particles[index].life = 1.0f;
+        particles[index].position = pos;
+        particles[index].velocity = glm::sphericalRand(1.0f) * 3.0f;
+        particles[index].color = glm::vec4(1.0f, 0.5f, 0.0f, 1.0f);
+        particles[index].size = size;
     }
 
     void update(float dt) {

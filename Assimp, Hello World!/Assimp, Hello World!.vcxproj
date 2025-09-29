@@ -227,6 +227,7 @@
     <ClInclude Include="Boss.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="GestoreCollisioni.h" />
+    <ClInclude Include="Illuminazione.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="Nemici.h" />

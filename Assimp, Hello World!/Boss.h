@@ -29,12 +29,15 @@ private:
     float bobAmp = 0.5f;
     float bobFreq = 0.9f;
     float moveFreq = 0.8f;
-    float scale = 3.0f;                 // <— grandezza boss
+    float moveAmpZ = 5.0f;    
+    float moveFreqZ = 0.5f;
+    float scale = 3.0f;   
+    float baseZ = -10.0f;
     SistemaParticelle* particleSystem = nullptr;
 
 
     Shader shader;
-    Shader auraShader; // shader per l'aura
+    Shader auraShader; 
     Model model;
     std::vector<Proiettile> proiettili;
 
@@ -48,7 +51,7 @@ public:
 
 //TODO gestione dei livelli
     void setShader(Shader s) { shader = s; }
-    void setAuraShader(Shader s) { auraShader = s; } // set dello shader aura
+    void setAuraShader(Shader s) { auraShader = s; } 
     void setModel(Model m) { model = m; }
     void setProiettileShader(Shader s) { proiettileShader = s; }
     void setProiettileModel(Model m) { proiettileModel = m; }
@@ -83,7 +86,7 @@ public:
             << ", intervallo: " << shootInterval << std::endl;
         pos.x = baseX + movementRange * sin(currentTime * moveFreq + 0.3 * livello);
         pos.y = 0.5f * sin(currentTime * bobFreq);
-
+        pos.z = baseZ + moveAmpZ * sin(currentTime * moveFreqZ + livello * 0.2f);
         if (currentTime - lastShotTime > shootInterval) {
             shoot();
             lastShotTime = currentTime;
@@ -173,31 +176,6 @@ public:
         shader.setFloat("spotlight.quadratic", 0.032f);
         model.Draw(shader);
 
-
-        // Aura rossa dietro al boss
-		glDepthMask(GL_FALSE); 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        auraShader.use();
-        glm::mat4 auraMat = glm::translate(glm::mat4(1.0f), posWorld);
-        auraMat = glm::scale(auraMat, glm::vec3(scale * 1.08f));
-        auraShader.setMat4("model", auraMat);
-        auraShader.setMat4("view", view);
-        auraShader.setMat4("projection", projection);
-
-        auraShader.setVec3("viewPos", player.getPos());
-        auraShader.setVec3("light.position", lightPos);
-        auraShader.setVec3("light.ambient", glm::vec3(0.1f));
-        auraShader.setVec3("light.diffuse", glm::vec3(0.8f));
-        auraShader.setVec3("light.specular", glm::vec3(1.0f));
-        auraShader.setVec3("material.ambient", glm::vec3(0.6f, 0.2f, 0.2f));
-        auraShader.setVec3("material.diffuse", glm::vec3(0.6f, 0.2f, 0.2f));
-        auraShader.setVec3("material.specular", glm::vec3(0.7f, 0.7f, 0.7f));
-        auraShader.setFloat("material.shininess", 32.0f);
-        model.Draw(auraShader);
-
-        glDisable(GL_BLEND);
-		glDepthMask(GL_TRUE); 
 
         // Proiettili
         proiettileShader.use();
@@ -299,7 +277,7 @@ public:
 
                 if (particleSystem) {
                     glm::vec3 p = glm::vec3(pos.x, pos.y + 0.8f * scale, bossZ);
-                    particleSystem->emit(p);                 // 50 particelle (già nel tuo emit)
+                    particleSystem->emit(p);               
                     if (health <= 0.0f) {
                         for (int k = 0; k < 3; ++k) particleSystem->emit(glm::vec3(pos.x, pos.y, bossZ));
                     }
