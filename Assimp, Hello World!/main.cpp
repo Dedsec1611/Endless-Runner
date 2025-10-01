@@ -28,6 +28,7 @@
 #include "Tunnel.h"
 #include "Background.h"
 #include "Illuminazione.h"
+#include "Asteroidi.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -67,7 +68,7 @@ float tempoAvvioNemici = 3.0f;
 float timerNemici = 0.0f;
 float tempoGioco = 0.0f;
 float intervalloGenerazioneNemici = 3.0f;
-float tempoBoss = 10.0f;
+float tempoBoss = 20.0f;
 float timerTransizioneBoss = 0.0f;
 float tempoTransizioneBoss = 2.0f;
 
@@ -77,8 +78,11 @@ Player player;
 Boss boss;
 Suono suono;
 Background* background = nullptr;
+Asteroidi muriAsteroidi;
+unsigned int rockTex = 0;
 
 Shader* shaderProgram = nullptr;
+Shader* asteroideShader = nullptr;
 Shader* backgroundShader = nullptr;
 Shader* starShader = nullptr;
 Shader* crosshairShader = nullptr;
@@ -98,6 +102,7 @@ Shader shaderBlur;
 Shader shaderBloomFinal;
 
 Model modelCubo;
+Model asteroidModel;
 Model modelBonus;
 Model modelBoss;
 Model modelAlieno1, modelAlieno2, modelAlieno3;
@@ -161,6 +166,14 @@ int main() {
     setupHDRBloom(SCR_WIDTH, SCR_HEIGHT);
 
     // Inizializzazione muri laterali
+    asteroidModel = Model("../src/models/asteroide/Rocky_Asteroid_3.obj");
+    rockTex = loadParticleTexture("../src/images/asteroide.png");
+    asteroideShader = new Shader("asteroide.vs", "asteroide.fs");
+
+    muriAsteroidi.init(asteroideShader, &asteroidModel, rockTex, 6.0f, 3.0f, 60.0f);
+    muriAsteroidi.generateSegment(0.0f);
+
+
     float wallVertices[] = {
         // x, y, z, norm.x, norm.y, norm.z
          1.0f,  1.0f,  0.0f,  1.0f, 0.0f, 0.0f,
@@ -581,10 +594,17 @@ void gameLoop(GLFWwindow* window) {
         glm::vec3 titleCol = glm::mix(glm::vec3(0.3f, 1.0f, 1.0f), glm::vec3(0.9f, 1.0f, 1.0f), pulse);
         glm::vec3 hintCol = glm::mix(glm::vec3(0.8f), glm::vec3(1.0f), pulse * 0.5f);
 
-        RenderText("ENDLESS RUNNER", 200.0f, 500.0f, 0.65f, titleCol);
-        RenderText("PREMI 1 PER GIOCARE", 100.0f, 400.0f, 0.5f, hintCol);
-        RenderText("PREMI 2 PER IMPOSTAZIONI", 100.0f, 340.0f, 0.5f, hintCol);
-        RenderText("ESC per uscire", 100.0f, 280.0f, 0.45f, glm::vec3(0.85f));
+        RenderText("ENDLESS RUNNER", 100.0f, 500.0f, 0.65f, titleCol);
+
+        RenderText("Sopravvivi agli alieni",
+            100.0f, 460.0f, 0.45f, glm::vec3(1.0f, 0.5f, 0.0f));
+
+        RenderText("e sconfiggi il boss per vincere la partita",
+            100.0f, 430.0f, 0.45f, glm::vec3(1.0f, 0.5f, 0.0f));
+
+        RenderText("PREMI 1 PER GIOCARE", 100.0f, 360.0f, 0.5f, hintCol);
+        RenderText("PREMI 2 PER IMPOSTAZIONI", 100.0f, 320.0f, 0.5f, hintCol);
+        RenderText("ESC per uscire", 100.0f, 240.0f, 0.45f, glm::vec3(0.85f));
 
         endHDRRender(false,shaderBloomFinal, shaderBlur);
         glfwSwapBuffers(window);
@@ -607,7 +627,7 @@ void gameLoop(GLFWwindow* window) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         tempoGioco += deltaTime;
-
+       
         if (!faseBoss && tempoGioco >= tempoBoss) {
             faseBoss = true;
             transizioneBossAttiva = true;
@@ -684,58 +704,47 @@ void gameLoop(GLFWwindow* window) {
         playerShader.setVec3("material.specular", glm::vec3(0.5f));
         playerShader.setFloat("material.shininess", 32.0f);
 
-        player.render();
-        RenderText("Vite: " + std::to_string(player.getVite()), 20.0f, SCR_HEIGHT - 50.0f, 0.5f, glm::vec3(1.0f));
+        if (faseBoss)
+            player.render(true);  
+        else
+            player.render(false); 
 
+        RenderText("Vite: " + std::to_string(player.getVite()), 20.0f, SCR_HEIGHT - 50.0f, 0.5f, glm::vec3(1.0f));
+        if (!faseBoss) {
+            int secondiMancanti = (int)glm::ceil(tempoBoss - tempoGioco);
+            if (secondiMancanti < 0) secondiMancanti = 0;
+
+            std::string timerText = "Boss tra: " + std::to_string(secondiMancanti) + "s";
+
+            glm::vec3 colore = glm::vec3(1.0f, 0.0f, 0.0f); 
+            float scala = 0.5f; 
+
+            if (secondiMancanti <= 5) {
+                float blink = (sin(glfwGetTime() * 8.0f) + 1.0f) * 0.5f;
+                colore = glm::mix(glm::vec3(1.0f, 0.0f, 0.0f),  
+                    glm::vec3(1.0f, 1.0f, 1.0f),  
+                    blink);
+
+                float pulse = 0.5f + 0.3f * fabs(sin(glfwGetTime() * 3.0f));
+                scala = pulse;
+            }
+
+            RenderText(timerText,
+                250.0f, SCR_HEIGHT - 50.0f,
+                scala, colore);
+        }
         glDisable(GL_CULL_FACE);
 
         // RENDER MURI
-        bool inBossFight = (faseBoss && !transizioneBossAttiva) ? true : false;
-        if (!inBossFight) {
-            const float kCorridorHalfWidth = 6.0f;
-            const float kFenceHeight = 1.5f;
-            const float kFenceThickness = 0.12f;
-            const float kSegLen = 60.0f;
+        bool inBossFight = (faseBoss) ? true : false;
+        //if (!inBossFight) {
+            muriAsteroidi.update(deltaTime, player.getPos().z);
 
-            wallShader.use();
-            wallShader.setVec3("fogColor", glm::vec3(0.01f, 0.02f, 0.05f));
-            wallShader.setFloat("fogStart", 35.0f);
-            wallShader.setFloat("fogEnd", 110.0f);
-            wallShader.setBool("fogEnabled", true);
-            wallShader.setMat4("view", view);
-            wallShader.setMat4("projection", projection);
+            glm::vec3 lightPos = glm::vec3(0.0f, 10.0f, player.getPos().z - 10.0f);
+            glm::vec3 viewPos = glm::vec3(glm::inverse(view)[3]); 
 
-            wallShader.setBool("spaceMode", true);
-            wallShader.setFloat("time", glfwGetTime());
-            wallShader.setVec3("viewPos", eyePos);
-            wallShader.setVec3("fenceTint", glm::vec3(0.25f, 0.6f, 1.0f)); 
-            wallShader.setFloat("fenceHeight", kFenceHeight);
-            wallShader.setFloat("starDensity", 0.015f); 
-
-            glBindVertexArray(wallVAO);
-
-            float offsetZ = fmod(-player.getPos().z, kSegLen);
-            float z0 = -offsetZ, z1 = z0 - kSegLen;
-            auto drawFence = [&](float x, float z) {
-                glm::mat4 m(1.0f);
-                m = glm::translate(m, glm::vec3(x, 0.0f, z));
-                if (x > 0.0f) {
-                    m = glm::scale(m, glm::vec3(-1.0f, 1.0f, 1.0f));
-                }
-                m = glm::scale(m, glm::vec3(kFenceThickness, kFenceHeight, kSegLen));
-                wallShader.setMat4("model", m);
-                glDrawArrays(GL_TRIANGLES, 0, 6);
-                };
-
-
-            drawFence(-kCorridorHalfWidth, z0);
-            drawFence(-kCorridorHalfWidth, z1);
-            drawFence(kCorridorHalfWidth, z0);
-            drawFence(kCorridorHalfWidth, z1);
-
-            glBindVertexArray(0);
-        }
-
+            muriAsteroidi.render(view, projection, viewPos, lightPos);
+       // }
 
         glEnable(GL_CULL_FACE);
 
@@ -937,7 +946,6 @@ void gameLoop(GLFWwindow* window) {
 
             sistemaParticelle->render(view, projection);
 
-            // ripristina stato
             if (wasCull) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
             if (wasDepth) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
             glDepthMask(depthMask);
@@ -976,7 +984,7 @@ void gameLoop(GLFWwindow* window) {
     }
 
 
-    // SCHERMATA FINALE: HAI VINTO / HAI PERSO
+    // SCHERMATA FINALE
     glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
     beginHDRRender(false);
     glDisable(GL_DEPTH_TEST);
@@ -1014,9 +1022,9 @@ void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && player.haBonusSparo()) {
-        player.gestisciSparo(window, proiettileNavicella);
-    }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+    player.gestisciSparo(window, proiettileNavicella);
+}
 }
 void initCrosshair() {
     float scaleY = 0.1f;

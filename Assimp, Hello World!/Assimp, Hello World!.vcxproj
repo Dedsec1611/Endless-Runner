@@ -166,6 +166,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="asteroide.fs" />
+    <None Include="asteroide.vs" />
     <None Include="aura.fs" />
     <None Include="aura.vs" />
     <None Include="background.fs" />
@@ -223,6 +225,7 @@
     <ClCompile Include="skybox.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Asteroidi.h" />
     <ClInclude Include="Background.h" />
     <ClInclude Include="Boss.h" />
     <ClInclude Include="camera.h" />

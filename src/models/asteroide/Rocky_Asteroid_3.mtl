@@ -1,0 +1,20 @@
+# Rocky Asteroid 3 Material
+newmtl Rocky_Asteroid_3
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ns 1.0
+illum 2
+
+# Diffuse map
+map_Kd Rocky_Asteroid_3_Diffuse_4K.png
+
+# Normal map (Tangent space)
+map_Bump Rocky_Asteroid_3_Normal_4K.png
+bump Rocky_Asteroid_3_Normal_4K.png
+
+# Roughness map
+map_Pr Rocky_Asteroid_3_Roughness_4K.png
+
+# Height / Displacement map
+disp Rocky_Asteroid_3_Height_4K.png

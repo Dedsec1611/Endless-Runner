@@ -44,6 +44,17 @@ public:
         particles[index].color = glm::vec4(1.0f, 0.5f, 0.0f, 1.0f);
         particles[index].size = size;
     }
+    void emit(const glm::vec3& pos, float size, const glm::vec3& dir) {
+        int index = findUnusedParticle();
+        particles[index].life = 1.0f;
+        particles[index].position = pos;
+
+        glm::vec3 jitter = glm::sphericalRand(0.2f);
+        particles[index].velocity = glm::normalize(dir + jitter) * 3.0f;
+
+        particles[index].color = glm::vec4(1.0f, 0.5f, 0.0f, 1.0f);
+        particles[index].size = size;
+    }
 
     void update(float dt) {
         for (auto& p : particles) {

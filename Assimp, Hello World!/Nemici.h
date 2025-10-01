@@ -11,6 +11,7 @@
 #include "proiettile.h"
 #include "SistemaParticelle.h"
 
+
 class Nemici {
 private:
     struct Nemico {
@@ -21,6 +22,11 @@ private:
         float animationTime = 0.0f;
         float baseX;
         int modelIndex = 0;
+        bool zigzag = false;
+        bool dash = false;
+
+        float dashTimer = 0.0f;     
+        float dashCooldown = 0.0f;
     };
 
     std::vector<Nemico> nemici;
@@ -33,7 +39,7 @@ private:
     Shader* bonusOutlineShader = nullptr;
     SistemaParticelle* sistemaParticelle = nullptr;
 
-    int minNemici = 3;
+    int minNemici = 4;
     int maxNemici = 5;
     int maxBonusPerSegmento = 1;
     float areaX = 10.0f;
@@ -66,7 +72,7 @@ public:
         int bonusCount = 0;
 
         std::vector<glm::vec3> posizioniOccupate;
-        float distanzaMinima = 6.0f;
+       // float distanzaMinima = 6.0f;
 
         int creati = 0;
         int tentativiTotali = 0;
@@ -75,11 +81,11 @@ public:
             Nemico n;
             bool posizioneValida = false;
             glm::vec3 nuovaPosizione;
-
+            float distanzaMinima = 4.0f + (std::rand() % 300) / 100.0f;
             int tentativi = 0;
             while (!posizioneValida && tentativi < 100) {
-                float offsetX = ((std::rand() / (float)RAND_MAX) * 2.0f - 1.0f) * areaX;
-                float offsetZ = ((std::rand() / (float)RAND_MAX) * 2.0f - 1.0f) * areaZ;
+                float offsetX = (static_cast<float>(std::rand()) / RAND_MAX - 0.5f) * 2.0f * areaX;
+                float offsetZ = (static_cast<float>(std::rand()) / RAND_MAX) * areaZ;
                 nuovaPosizione = glm::vec3(basePosition.x + offsetX, basePosition.y, basePosition.z - offsetZ);
 
                 posizioneValida = true;
@@ -102,6 +108,8 @@ public:
             n.isBonus = false;
             n.animationTime = 0.0f;
             n.modelIndex = std::rand() % modelliNemici.size();
+            n.zigzag = (std::rand() % 100) < 50;
+            n.dash = (std::rand() % 100) < 30;
 
             posizioniOccupate.push_back(n.position);
 
@@ -131,19 +139,37 @@ public:
         for (auto& n : nemici) {
             n.animationTime += deltaTime;
             n.position.z += n.speed * deltaTime;
-
             float ampiezza = 1.0f;
             float frequenzaBase = 1.0f;
             float maxFrequenza = 3.0f;
             float frequenza = frequenzaBase + (elapsedTime * 0.1f);
             frequenza = std::min(frequenza, maxFrequenza);
-
             n.position.x = n.baseX + ampiezza * std::sin(frequenza * n.animationTime);
             float lim = areaX;
             n.position.x = glm::clamp(n.position.x,
                 basePosition.x - lim,
                 basePosition.x + lim);
 
+            float actualSpeed = n.speed;
+            if (n.zigzag) {
+                actualSpeed *= 1.8f; 
+                n.position.z += actualSpeed * deltaTime;
+            }
+            if (n.dash) {
+                if (n.dashTimer > 0.0f) {
+                    actualSpeed *= 2.5f;
+                    n.dashTimer -= deltaTime;
+                }
+                else {
+                    n.dashCooldown -= deltaTime;
+                    if (n.dashCooldown <= 0.0f) {
+                        if ((std::rand() % 100) < 5) {
+                            n.dashTimer = 1.0f;
+                            n.dashCooldown = 3.0f;
+                        }
+                    }
+                }
+            }
         }
     }
 

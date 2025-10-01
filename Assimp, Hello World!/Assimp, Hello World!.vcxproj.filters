@@ -163,6 +163,12 @@
     <None Include="enemy_shader.vs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="asteroide.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="asteroide.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -231,6 +237,9 @@
       <Filter>Resource Files</Filter>
     </ClInclude>
     <ClInclude Include="Illuminazione.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Asteroidi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
