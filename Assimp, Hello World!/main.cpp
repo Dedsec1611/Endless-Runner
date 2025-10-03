@@ -71,6 +71,8 @@ float intervalloGenerazioneNemici = 3.0f;
 float tempoBoss = 20.0f;
 float timerTransizioneBoss = 0.0f;
 float tempoTransizioneBoss = 2.0f;
+bool gSkipMenu = false;
+
 
 // Oggetti globali
 Tunnel tunnel;
@@ -568,6 +570,34 @@ void gameLoop(GLFWwindow* window) {
 
     // MENU INIZIALE
     bool startGame = false;
+
+    // >>> SKIP MENU se stai avanzando di livello
+    if (gSkipMenu) {
+        giocoTerminato = false;
+        vittoria = false;
+        faseBoss = false;
+        transizioneBossAttiva = false;
+
+        tempoGioco = 0.0f;
+        timerTransizioneBoss = 0.0f;
+        timerNemici = 0.0f;
+        nemiciAttivi = false;
+
+        // posizione/shape player “di partenza”
+        player.setPos(glm::vec3(0.0f, 0.0f, 0.0f));
+       // player.resetInvincibilita();        
+      //  player.disabilitaSparoTemporaneo();  
+
+        // musica e via
+        startGame = true;
+        const char* kGameplayMusic = "../src/sounds/star-wars-battle.mp3";
+        StartGameplayMusic(kGameplayMusic, /*volume*/ suono.getVolumeGlobale(), /*enabled*/ suono.getAttivoGlobale());
+        SetGameplayMusicEnabled(suono.getAttivoGlobale());
+
+        gSkipMenu = false; // consumato
+    }
+
+
     while (!startGame && !glfwWindowShouldClose(window)) {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -835,6 +865,27 @@ void gameLoop(GLFWwindow* window) {
             alienoShader.setFloat("shininess", 16.0f);
 
             modelBonus.Draw(bonusShader);
+            // === AURA/OUTLINE BONUS ===
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_ONE, GL_ONE);   // additive per “glow”
+            glDepthMask(GL_FALSE);         // non scrivere nello z-buffer
+            glDisable(GL_CULL_FACE);       // evita buchi sui bordi dell’estrusione
+
+            bonusOutlineShader.use();
+            bonusOutlineShader.setMat4("view", view);
+            bonusOutlineShader.setMat4("projection", projection);
+            bonusOutlineShader.setFloat("time", glfwGetTime());
+
+            // Se usi una model matrix per il bonus, impostala anche qui:
+            // bonusOutlineShader.setMat4("model", modelBonusMatrix);
+
+            modelBonus.Draw(bonusOutlineShader);
+                 
+            // ripristino stato
+            glDepthMask(GL_TRUE);
+            glDisable(GL_BLEND);
+            glEnable(GL_CULL_FACE);
+
 
             tunnel.update(deltaTime, player.getPos().z);
             tunnel.draw(alienoShader, view, projection, proiettileNavicella, proiettileNavicella, player, giocoTerminato, nemiciAttivi);
@@ -983,38 +1034,66 @@ void gameLoop(GLFWwindow* window) {
         glfwPollEvents();
     }
 
-
-    // SCHERMATA FINALE
+    // ===================== SCHERMATA FINALE =====================
     glClearColor(0.0f, 0.0f, 0.05f, 1.0f);
     beginHDRRender(false);
     glDisable(GL_DEPTH_TEST);
 
-    std::string messaggio = vittoria ? "HAI VINTO!" : "HAI PERSO!";
-    RenderText(messaggio + " - Livello " + std::to_string(livelloCorrente),
-        SCR_WIDTH / 2.0f - 250.0f,
-        SCR_HEIGHT / 2.0f,
-        1.0f,
-        glm::vec3(1.0f, 0.5f, 0.0f));
+    // helpers per centratura rapida (approssimata ma efficace)
+    auto ApproxTextWidth = [](const std::string& s, float scale) {
+        // 20 px carattere ~ come negli altri RenderText che usi
+        return (float)s.size() * 20.0f * scale;
+        };
+    auto RenderTextCentered = [&](const std::string& s, float y, float scale, const glm::vec3& col) {
+        float w = ApproxTextWidth(s, scale);
+        float x = (SCR_WIDTH - w) * 0.5f;
+        RenderText(s, x, y, scale, col);
+        };
 
-    RenderText("Premi SPAZIO per tornare al menu",
-        SCR_WIDTH / 2.0f - 280.0f,
-        SCR_HEIGHT / 2.0f - 50.0f,
-        0.5f,
-        glm::vec3(1.0f));
+    std::string titolo = vittoria ? "HAI VINTO!" : "HAI PERSO!";
+    float titleScale = 1.0f;
+    glm::vec3 titleColor = vittoria ? glm::vec3(1.0f, 0.9f, 0.2f) : glm::vec3(1.0f, 0.4f, 0.0f);
 
-    endHDRRender(false,shaderBloomFinal, shaderBlur);
+    // titolo + livello centrati
+    RenderTextCentered(titolo, SCR_HEIGHT * 0.55f, titleScale, titleColor);
+    RenderTextCentered("Livello " + std::to_string(livelloCorrente),
+        SCR_HEIGHT * 0.50f, 0.7f, glm::vec3(0.9f));
+
+    // istruzioni
+    if (vittoria) {
+        RenderTextCentered("SPAZIO: continua al prossimo livello",
+            SCR_HEIGHT * 0.42f, 0.5f, glm::vec3(1.0f));
+    }
+    else {
+        RenderTextCentered("SPAZIO: riprova", SCR_HEIGHT * 0.42f, 0.5f, glm::vec3(1.0f));
+    }
+    RenderTextCentered("ESC: torna al menu", SCR_HEIGHT * 0.37f, 0.5f, glm::vec3(0.85f));
+
+    endHDRRender(false, shaderBloomFinal, shaderBlur);
     glfwSwapBuffers(window);
-    while (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !glfwWindowShouldClose(window)) {
+
+    // attesa input: SPAZIO / ESC
+    bool attesaInput = true;
+    while (attesaInput && !glfwWindowShouldClose(window)) {
         glfwPollEvents();
-    }
-    bool attesaPressione = true;
-    while (attesaPressione && !glfwWindowShouldClose(window)) {
-        glfwPollEvents();
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            attesaPressione = false;
+
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+            // torna al menu: forza un reset “come sconfitta”
+            vittoria = false;
+            attesaInput = false;
+            break;
         }
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            // se hai vinto, al prossimo ciclo salta il menu e parte subito il livello successivo
+            if (vittoria) gSkipMenu = true;
+            // se hai perso, gSkipMenu resta false => torni al menu come prima
+            attesaInput = false;
+            break;
+        }
+
     }
-}
+} 
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
