@@ -589,6 +589,7 @@ void gameLoop(GLFWwindow* window) {
       //  player.disabilitaSparoTemporaneo();  
 
         // musica e via
+        lastFrame = glfwGetTime();
         startGame = true;
         const char* kGameplayMusic = "../src/sounds/star-wars-battle.mp3";
         StartGameplayMusic(kGameplayMusic, /*volume*/ suono.getVolumeGlobale(), /*enabled*/ suono.getAttivoGlobale());
@@ -601,7 +602,12 @@ void gameLoop(GLFWwindow* window) {
     while (!startGame && !glfwWindowShouldClose(window)) {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
+
+        // evita salti enormi (loading, resize, alt-tab, ecc.)
+        if (deltaTime > 0.1f) deltaTime = 0.016f;  // ~60 FPS “di ripartenza”
+
         lastFrame = currentFrame;
+
 
         beginHDRRender(false);
         glDisable(GL_DEPTH_TEST);
@@ -650,6 +656,8 @@ void gameLoop(GLFWwindow* window) {
         if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
             apriMenuImpostazioni(window, starfield, starShader, suono);
     }
+
+    lastFrame = glfwGetTime();
 
     // CICLO DI GIOCO PRINCIPALE
     while (!glfwWindowShouldClose(window)) {
